@@ -4,6 +4,7 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
+var compression = require('compression');
 
 const app = express();
 
@@ -18,6 +19,8 @@ const limiter = rateLimit({
     message: 'Too many request from this IP, please try again later',
 });
 
+app.disable('x-powered-by');
+
 if (MODE === 'development') {
     app.use(morgan('dev'));
 } else {
@@ -29,5 +32,6 @@ app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(cookieParser());
 app.use(limiter);
 app.use(helmet());
+app.use(compression());
 
 module.exports = app;

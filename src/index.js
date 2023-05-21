@@ -1,74 +1,83 @@
 require('dotenv').config();
 const app = require('./app');
+const { sequelize } = require('./db/db.config');
 const chalk = require('chalk');
 
 const { PORT = 3000 } = process.env;
 
-const server = app.listen(PORT, () => {
-    console.log(
-        chalk.bgGreen.bold('SERVER STATUS: '),
-        chalk.whiteBright('Server is running on port:'),
-        chalk.green.bold(`${PORT}`)
-    );
-});
+let server;
 
-process.on('unhandledRejection', err => {
-    console.log(
-        chalk.bgRed.bold('SERVER STATUS'),
-        chalk.redBright(`UNHANDLED REJECTION!`),
-        chalk.redBright.italic(err?.name, err?.stack)
-    );
-    server.close(() => {
-        process.exit(1);
-    });
-});
-
-process.on('uncaughtException', err => {
-    console.log(
-        chalk.bgRed.bold('SERVER STATUS'),
-        chalk.redBright(`UNCAUGHT EXCEPTION! \n`),
-        chalk.redBright.italic(err.stack)
-    );
-    server.close(() => {
-        process.exit(1);
-    });
-});
-
-process.on('SIGTERM', () => {
-    console.log(
-        chalk.yellowBright.bold('SERVER STATUS'),
-        chalk.whiteBright(`SIGTERM RECEIVED!`)
-    );
-    server.close(() => {
+const connect = async () => {
+    try {
+        await sequelize.authenticate();
+        chalk.bgGreenBright.bold('DB STATUS');
         console.log(
-            chalk.bgGreen.bold('SERVER STATUS'),
-            chalk.greenBright('Process terminated')
+            chalk.bgGreenBright.bold('DB STATUS'),
+            chalk.greenBright('Connection has been established successfully.')
+        );
+    } catch (err) {
+        console.error(
+            chalk.bgRedBright.bold('DB STATUS'),
+            chalk.redBright('Unable to connect to the database:\n'),
+            chalk.redBright.italic(err)
+        );
+    }
+};
+
+const sync = async () => {
+    await sequelize.sync({ force: true });
+    console.log(
+        chalk.bgGreenBright.bold('DB STATUS'),
+        chalk.greenBright(`All models were synchronized successfully.`)
+    );
+};
+
+const start = async () => {
+    await connect();
+
+    server = app.listen(PORT, () => {
+        console.log(
+            chalk.bgGreen.bold('SERVER STATUS: '),
+            chalk.whiteBright('Server is running on port:'),
+            chalk.green.bold(`${PORT}`)
         );
     });
-});
 
-process.on('SIGINT', () => {
-    console.log(
-        chalk.yellowBright.bold('SERVER STATUS'),
-        chalk.yellow(`SIGINT RECEIVED!`)
-    );
-    server.close(() => {
+    await sync();
+};
+
+['unhandledRejection', 'uncaughtException'].forEach(event => {
+    const index = event.search(/[A-Z]/);
+    process.on(event, err => {
         console.log(
-            chalk.bgGreen.bold('SERVER STATUS'),
-            chalk.greenBright('Process terminated')
+            chalk.bgRed.bold('SERVER STATUS'),
+            chalk.redBright(
+                `${event.slice(0, index).toUpperCase()} ${event
+                    .slice(index)
+                    .toUpperCase()}! \n`
+            ),
+            chalk.redBright(`${err.message}\n`),
+            chalk.redBright.italic(err.stack)
         );
+        server.close(() => {
+            process.exit(1);
+        });
     });
 });
 
-process.on('SIGQUIT', () => {
-    console.log(
-        chalk.yellowBright.bold('SERVER STATUS'),
-        chalk.yellow(`SIGQUIT RECEIVED!`)
-    );
-    server.close(() => {
+['SIGTERM', 'SIGINT', 'SIGQUIT'].forEach(event => {
+    process.on(event, () => {
         console.log(
-            chalk.bgGreen.bold('SERVER STATUS'),
-            chalk.greenBright('Process terminated')
+            chalk.yellowBright.bold('SERVER STATUS'),
+            chalk.whiteBright(`${event} RECEIVED!`)
         );
+        server.close(() => {
+            console.log(
+                chalk.bgGreen.bold('SERVER STATUS'),
+                chalk.greenBright('Process terminated')
+            );
+        });
     });
 });
+
+start();
