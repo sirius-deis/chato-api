@@ -1,11 +1,14 @@
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
+const crypto = require('crypto');
 
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 const { comparePasswords } = require('../utils/validator');
+const sendMail = require('../utils/email');
 
 const User = require('../models/user.models');
+const ActivateToken = require('../models/activateToken.models');
 
 const { JWT_SECRET, JWT_EXPIRES_IN } = process.env;
 
@@ -29,6 +32,11 @@ const sendResponseWithErrors = (errors, next) => {
             `${error.msg}. Field '${error.path}' with value '${error.value}' doesn't pass validation`
     );
     next(new AppError(errorsArr, 400));
+};
+
+const createToken = () => {
+    const hash = crypto.randomBytes(32).toString('hex');
+    return hash;
 };
 
 exports.signup = catchAsync(async (req, res, next) => {
@@ -85,6 +93,11 @@ exports.login = catchAsync(async (req, res, next) => {
         },
         user.id
     );
+});
+
+//TODO:
+exports.activate = catchAsync(async (req, res, next) => {
+    const { activateToken } = req.params;
 });
 
 exports.delete = catchAsync(async (req, res, next) => {

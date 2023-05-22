@@ -21,6 +21,8 @@ userRouter.post(
     userController.login
 );
 
+userRouter.get('/activate', userController.activate);
+
 userRouter.use(isLoggedIn);
 
 userRouter.post(
