@@ -34,6 +34,14 @@ userRouter.post(
     userController.forgetPassword
 );
 
+userRouter.patch(
+    '/reset-password/:resetToken',
+    isNotEmptyWithLength('password'),
+    isNotEmptyWithLength('passwordConfirm'),
+    validationMiddleware,
+    userController.resetPassword
+);
+
 userRouter.use(isLoggedIn);
 
 userRouter
