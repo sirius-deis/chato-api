@@ -123,6 +123,15 @@ exports.activate = catchAsync(async (req, res, next) => {
         where: { token: activateToken },
     });
 
+    if (!token) {
+        return next(
+            new AppError(
+                'Token is not exist. Please check if it is correct',
+                400
+            )
+        );
+    }
+
     const user = await User.scope('withIsActive').findByPk(token.userId);
 
     if (!user) {
@@ -205,9 +214,14 @@ exports.updatePassword = catchAsync(async (req, res, next) => {
 
     await user.save();
 
-    res.status(200).json({
-        message: 'You password was successfully updated',
-    });
+    sendResponseWithJwtToken(
+        res,
+        200,
+        {
+            message: 'You password was successfully updated',
+        },
+        user.id
+    );
 });
 
 exports.forgetPassword = catchAsync(async (req, res, next) => {
@@ -228,6 +242,44 @@ exports.forgetPassword = catchAsync(async (req, res, next) => {
         message:
             'Reset token was sent to your email. Check it and follow instructions inside it',
     });
+});
+
+exports.resetPassword = catchAsync(async (req, res, next) => {
+    const { resetToken } = req.params;
+    const { password, passwordConfirm } = req.body;
+    const token = await ResetToken.findOne({ where: { token: resetToken } });
+
+    if (!token) {
+        return next(
+            new AppError(
+                'Token is not exist. Please check if it is correct',
+                400
+            )
+        );
+    }
+
+    const user = await User.findByPk(token.userId);
+
+    if (!user) {
+        return next(new AppError('Token is invalid. Please try again', 400));
+    }
+
+    if (!arePasswordsTheSame(password, passwordConfirm)) {
+        return next(new AppError('Passwords are different', 400));
+    }
+
+    user.password = password;
+    await user.save();
+    await token.destroy();
+
+    sendResponseWithJwtToken(
+        res,
+        200,
+        {
+            message: 'You password was successfully restored',
+        },
+        user.id
+    );
 });
 
 exports.logout = catchAsync(async (req, res, next) => {
