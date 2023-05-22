@@ -25,7 +25,7 @@ const connect = async () => {
 };
 
 const sync = async () => {
-    await sequelize.sync({ force: true });
+    await sequelize.sync();
     console.log(
         chalk.bgGreenBright.bold('DB STATUS'),
         chalk.greenBright(`All models were synchronized successfully.`)

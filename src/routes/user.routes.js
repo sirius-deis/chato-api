@@ -13,4 +13,11 @@ userRouter.post(
     userController.signup
 );
 
+userRouter.post(
+    '/login',
+    isEmail(),
+    isNotEmptyWithLength('password'),
+    userController.login
+);
+
 module.exports = userRouter;

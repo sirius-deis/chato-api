@@ -16,7 +16,7 @@ const User = sequelize.define(
             unique: true,
         },
         email: {
-            type: DataTypes.STRING(100),
+            type: DataTypes.STRING(40),
             allowNull: false,
             unique: true,
             validate: {
@@ -24,7 +24,7 @@ const User = sequelize.define(
             },
         },
         password: {
-            type: DataTypes.STRING(64),
+            type: DataTypes.STRING(100),
             allowNull: false,
         },
         passwordChangedAt: {
@@ -86,12 +86,31 @@ const User = sequelize.define(
                 }
             },
         },
-        instanceMethods: {
-            validatePassword: password => {
-                return bcrypt.compare(password, this.password);
+        defaultScope: {
+            attributes: {
+                exclude: [
+                    'lastSeen',
+                    'isOnline',
+                    'isActive',
+                    'isReported',
+                    'isBlocked',
+                    'passwordChangedAt',
+                    'createdAt',
+                    'updatedAt',
+                ],
             },
         },
     }
 );
+
+User.prototype.validatePassword = async function (password) {
+    return await bcrypt.compare(password, this.password);
+};
+
+User.addScope('withoutPassword', {
+    attributes: {
+        exclude: ['password'],
+    },
+});
 
 module.exports = User;
