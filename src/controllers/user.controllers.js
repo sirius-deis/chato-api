@@ -4,7 +4,7 @@ const crypto = require('crypto');
 
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
-const { comparePasswords } = require('../utils/validator');
+const { arePasswordsTheSame } = require('../utils/validator');
 const sendMail = require('../utils/email');
 
 const User = require('../models/user.models');
@@ -54,13 +54,14 @@ const filterFieldsForUpdating = fields => {
 
 exports.signup = catchAsync(async (req, res, next) => {
     const { email, password, passwordConfirm } = req.body;
+
     const { errors } = validationResult(req);
     if (errors.length) {
         sendResponseWithErrors(errors, next);
         return;
     }
 
-    if (!comparePasswords(password, passwordConfirm)) {
+    if (!arePasswordsTheSame(password, passwordConfirm)) {
         return next(
             new AppError(
                 'Password are not the same. Please provide correct passwords',
@@ -92,6 +93,7 @@ exports.signup = catchAsync(async (req, res, next) => {
 
 exports.login = catchAsync(async (req, res, next) => {
     const { email, password } = req.body;
+
     const { errors } = validationResult(req);
     if (errors.length) {
         sendResponseWithErrors(errors, next);
@@ -152,6 +154,7 @@ exports.activate = catchAsync(async (req, res, next) => {
     }
 
     await user.update({ isActive: true });
+    await token.destroy();
 
     res.status(200).json({
         message:
@@ -182,6 +185,12 @@ exports.updateMe = catchAsync(async (req, res, next) => {
     const { user } = req;
     const { firstName, lastName, bio } = req.body;
 
+    const { errors } = validationResult(req);
+    if (errors.length) {
+        sendResponseWithErrors(errors, next);
+        return;
+    }
+
     const fieldsToInsert = filterFieldsForUpdating({
         firstName,
         lastName,
@@ -200,6 +209,45 @@ exports.updateMe = catchAsync(async (req, res, next) => {
         message: 'Your data was updated successfully',
     });
 });
+
+exports.updatePassword = catchAsync(async (req, res, next) => {
+    const { user } = req;
+    const { password, passwordConfirm, currentPassword } = req.body;
+
+    const { errors } = validationResult(req);
+    if (errors.length) {
+        sendResponseWithErrors(errors, next);
+        return;
+    }
+
+    if (!(await user.validatePassword(currentPassword))) {
+        return next(new AppError('Incorrect password', 403));
+    }
+
+    if (password === currentPassword) {
+        return next(
+            new AppError(
+                "New password can't be the same as the current one",
+                400
+            )
+        );
+    }
+
+    if (!arePasswordsTheSame(password, passwordConfirm)) {
+        return next(new AppError('Password are different', 400));
+    }
+
+    user.password = password;
+
+    await user.save();
+
+    res.status(200).json({
+        message: 'You password was successfully updated',
+    });
+});
+
+//TODO:
+exports.forgetPassword = catchAsync(async (req, res, next) => {});
 
 exports.delete = catchAsync(async (req, res, next) => {
     const { user } = req;

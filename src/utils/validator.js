@@ -8,6 +8,6 @@ exports.isNotEmptyWithLength = (field, min = 4, max) =>
         .isLength({ min, max: max ?? undefined })
         .escape();
 
-exports.comparePasswords = (password1, password2) => {
+exports.arePasswordsTheSame = (password1, password2) => {
     return password1 === password2;
 };

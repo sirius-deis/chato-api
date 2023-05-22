@@ -25,7 +25,23 @@ userRouter.post(
 
 userRouter.use(isLoggedIn);
 
-userRouter.route('/me').get(userController.me).patch(userController.updateMe);
+userRouter
+    .route('/me')
+    .get(userController.me)
+    .patch(
+        isNotEmptyWithLength('firstName'),
+        isNotEmptyWithLength('lastName'),
+        isNotEmptyWithLength('bio', 1, 256),
+        userController.updateMe
+    );
+
+userRouter.post(
+    '/update-password',
+    isNotEmptyWithLength('password'),
+    isNotEmptyWithLength('passwordConfirm'),
+    isNotEmptyWithLength('currentPassword'),
+    userController.updatePassword
+);
 
 userRouter.post(
     '/delete',
