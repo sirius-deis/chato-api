@@ -68,6 +68,7 @@ const User = sequelize.define(
         isOnline: {
             type: DataTypes.BOOLEAN,
             field: 'is_online',
+            defaultValue: false,
         },
     },
     {
@@ -111,6 +112,12 @@ User.prototype.validatePassword = async function (password) {
 User.addScope('withPassword', {
     attributes: {
         include: ['password'],
+    },
+});
+
+User.addScope('withIsActive', {
+    attributes: {
+        include: ['isActive'],
     },
 });
 
