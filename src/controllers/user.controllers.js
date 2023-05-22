@@ -10,7 +10,7 @@ const sendMail = require('../utils/email');
 const User = require('../models/user.models');
 const ActivateToken = require('../models/activateToken.models');
 
-const { JWT_SECRET, JWT_EXPIRES_IN } = process.env;
+const { MODE, PORT, JWT_SECRET, JWT_EXPIRES_IN } = process.env;
 
 const signToken = userId => {
     return jwt.sign({ userId }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
@@ -58,9 +58,22 @@ exports.signup = catchAsync(async (req, res, next) => {
 
     await User.create({ email, password });
 
+    const token = createToken();
+
+    await ActivateToken.create({ token });
+
+    const link = `${req.protocol}://${req.hostname}${
+        MODE === 'development' ? `:${PORT}` : ''
+    }${req.baseUrl}/activate/${token}`;
+
+    await sendMail(email, 'Activate your Chato account', 'verification', {
+        link,
+        email,
+    });
+
     res.status(201).json({
         message:
-            'Your account was created successfully. Please login to continue',
+            'Your account was created successfully. Please check your email and confirm your account, and then you will be able to use our service',
     });
 });
 
@@ -78,6 +91,15 @@ exports.login = catchAsync(async (req, res, next) => {
 
     if (!user || !(await user.validatePassword(password))) {
         return next(new AppError('Wrong email or password', 400));
+    }
+
+    if (!user.dataValues.isActive) {
+        return next(
+            new AppError(
+                'Your account is deactivated. Please reactivate your account and then try again',
+                403
+            )
+        );
     }
 
     user.password = undefined;

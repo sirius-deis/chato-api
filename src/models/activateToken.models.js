@@ -1,14 +1,9 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../db/db.config');
 
-const ActivateToken = sequelize.define('ActivateToken', {
-    id: {
-        type: DataTypes.INTEGER,
-        autoIncrement: true,
-        primaryKey: true,
-    },
+const ActivateToken = sequelize.define('ActivateTokens', {
     token: {
-        type: DataTypes.STRING(32),
+        type: DataTypes.STRING(64),
         allowNull: false,
     },
     createdAt: {

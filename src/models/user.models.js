@@ -1,10 +1,9 @@
 const { DataTypes } = require('sequelize');
 const bcrypt = require('bcrypt');
 const { sequelize } = require('../db/db.config');
-const ActivateToken = require('./activateToken.models');
 
 const User = sequelize.define(
-    'User',
+    'Users',
     {
         id: {
             type: DataTypes.INTEGER,
@@ -114,7 +113,5 @@ User.addScope('withPassword', {
         include: ['password'],
     },
 });
-
-User.hasOne(ActivateToken, { onDelete: 'cascade' });
 
 module.exports = User;

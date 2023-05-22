@@ -2,6 +2,7 @@ require('dotenv').config();
 const app = require('./app');
 const { sequelize } = require('./db/db.config');
 const chalk = require('chalk');
+require('./associations');
 
 const { PORT = 3000 } = process.env;
 

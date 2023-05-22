@@ -5,6 +5,7 @@ const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const compression = require('compression');
+const path = require('path');
 
 const catchAsync = require('./utils/catchAsync');
 const AppError = require('./utils/appError');
@@ -31,6 +32,7 @@ if (MODE === 'development') {
 } else {
     app.use(morgan('tiny'));
 }
+app.use(express.static('public'));
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
