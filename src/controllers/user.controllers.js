@@ -39,6 +39,19 @@ const createToken = () => {
     return hash;
 };
 
+const filterFieldsForUpdating = fields => {
+    const map = {};
+    let isInserted = false;
+    for (const field in fields) {
+        if (fields[field]) {
+            map[field] = fields[field];
+            isInserted = true;
+        }
+    }
+
+    return isInserted && map;
+};
+
 exports.signup = catchAsync(async (req, res, next) => {
     const { email, password, passwordConfirm } = req.body;
     const { errors } = validationResult(req);
@@ -56,11 +69,11 @@ exports.signup = catchAsync(async (req, res, next) => {
         );
     }
 
-    await User.create({ email, password });
+    const user = await User.create({ email, password });
 
     const token = createToken();
 
-    await ActivateToken.create({ token });
+    await ActivateToken.create({ token, userId: user.id });
 
     const link = `${req.protocol}://${req.hostname}${
         MODE === 'development' ? `:${PORT}` : ''
@@ -117,9 +130,75 @@ exports.login = catchAsync(async (req, res, next) => {
     );
 });
 
-//TODO:
 exports.activate = catchAsync(async (req, res, next) => {
     const { activateToken } = req.params;
+    const token = await ActivateToken.findOne({
+        where: { token: activateToken },
+    });
+
+    const user = await User.scope('withIsActive').findByPk(token.userId);
+
+    if (!user) {
+        return next(new AppError('Token is invalid. Please try again', 400));
+    }
+
+    if (user.isActive) {
+        return next(
+            new AppError(
+                'Current account has been already verified. Please login or reset you password if you have any problems',
+                400
+            )
+        );
+    }
+
+    await user.update({ isActive: true });
+
+    res.status(200).json({
+        message:
+            'Your account was successfully verified. Please login and enjoy chatting',
+    });
+});
+
+exports.me = catchAsync(async (req, res, next) => {
+    const { user } = req;
+
+    res.status(200).json({
+        message: 'Data was retrieved successfully',
+        data: {
+            user: {
+                id: user.id,
+                phone: user.phone,
+                email: user.email,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                bio: user.bio,
+                role: user.role,
+            },
+        },
+    });
+});
+
+exports.updateMe = catchAsync(async (req, res, next) => {
+    const { user } = req;
+    const { firstName, lastName, bio } = req.body;
+
+    const fieldsToInsert = filterFieldsForUpdating({
+        firstName,
+        lastName,
+        bio,
+    });
+
+    if (!fieldsToInsert) {
+        return next(
+            new AppError('Please provide some information to change', 400)
+        );
+    }
+
+    await user.update(fieldsToInsert);
+
+    res.status(200).json({
+        message: 'Your data was updated successfully',
+    });
 });
 
 exports.delete = catchAsync(async (req, res, next) => {
@@ -157,7 +236,9 @@ exports.deactivate = catchAsync(async (req, res, next) => {
         return next(new AppError('Incorrect password', 400));
     }
 
-    await user.set({ isActive: false });
+    user.set({ isActive: false });
+
+    await user.save();
 
     res.clearCookie('token');
 

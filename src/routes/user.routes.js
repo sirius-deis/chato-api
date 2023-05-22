@@ -14,6 +14,8 @@ userRouter.post(
     userController.signup
 );
 
+userRouter.get('/activate/:activateToken', userController.activate);
+
 userRouter.post(
     '/login',
     isEmail(),
@@ -21,9 +23,9 @@ userRouter.post(
     userController.login
 );
 
-userRouter.get('/activate', userController.activate);
-
 userRouter.use(isLoggedIn);
+
+userRouter.route('/me').get(userController.me).patch(userController.updateMe);
 
 userRouter.post(
     '/delete',

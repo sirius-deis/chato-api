@@ -9,6 +9,7 @@ const { JWT_SECRET } = process.env;
 
 exports.isLoggedIn = catchAsync(async (req, res, next) => {
     const { token } = req.cookies;
+
     if (!token) {
         return next(new AppError('Sign in before accessing this route', 401));
     }
