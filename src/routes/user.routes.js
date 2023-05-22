@@ -21,6 +21,11 @@ userRouter.post(
     userController.login
 );
 
-userRouter.post('/test', isLoggedIn);
+userRouter.post(
+    '/delete',
+    isLoggedIn,
+    isNotEmptyWithLength('password'),
+    userController.delete
+);
 
 module.exports = userRouter;

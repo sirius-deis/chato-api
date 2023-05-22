@@ -23,15 +23,20 @@ const sendResponseWithJwtToken = (res, statusCode, data, userId) => {
     res.status(statusCode).json(data);
 };
 
+const sendResponseWithErrors = (errors, next) => {
+    const errorsArr = errors.map(
+        error =>
+            `${error.msg}. Field '${error.path}' with value '${error.value}' doesn't pass validation`
+    );
+    next(new AppError(errorsArr, 400));
+};
+
 exports.signup = catchAsync(async (req, res, next) => {
     const { email, password, passwordConfirm } = req.body;
     const { errors } = validationResult(req);
     if (errors.length) {
-        const errorsArr = errors.map(
-            error =>
-                `${error.msg}. Field '${error.path}' with value '${error.value}' is incorrect`
-        );
-        return next(new AppError(errorsArr, 400));
+        sendResponseWithErrors(errors, next);
+        return;
     }
 
     if (!comparePasswords(password, passwordConfirm)) {
@@ -55,18 +60,15 @@ exports.login = catchAsync(async (req, res, next) => {
     const { email, password } = req.body;
     const { errors } = validationResult(req);
     if (errors.length) {
-        const errorsArr = errors.map(
-            error =>
-                `${error.msg}. Field '${error.path}' with value '${error.value}' is incorrect`
-        );
-        return next(new AppError(errorsArr, 400));
+        sendResponseWithErrors(errors, next);
+        return;
     }
 
     const user = await User.scope('withPassword').findOne({
         where: { email },
     });
 
-    if (!user || (await !user.validatePassword(password))) {
+    if (!user || !(await user.validatePassword(password))) {
         return next(new AppError('Wrong email or password', 400));
     }
 
@@ -83,4 +85,25 @@ exports.login = catchAsync(async (req, res, next) => {
         },
         user.id
     );
+});
+
+exports.delete = catchAsync(async (req, res, next) => {
+    const { user } = req;
+    const { password } = req.body;
+
+    const { errors } = validationResult(req);
+    if (errors.length) {
+        sendResponseWithErrors(errors, next);
+        return;
+    }
+
+    if (!(await user.validatePassword(password))) {
+        return next(new AppError('Incorrect password', 400));
+    }
+
+    await user.destroy();
+
+    res.clearCookie('token');
+
+    res.status(204).json({ message: 'Your account was deleted successfully' });
 });
