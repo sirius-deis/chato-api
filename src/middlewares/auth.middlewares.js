@@ -10,7 +10,7 @@ const { JWT_SECRET } = process.env;
 exports.isLoggedIn = catchAsync(async (req, res, next) => {
     const { token } = req.cookies;
     if (!token) {
-        next(new AppError('Sign in before accessing this route', 401));
+        return next(new AppError('Sign in before accessing this route', 401));
     }
 
     const payload = jwt.verify(token, JWT_SECRET);
@@ -19,7 +19,7 @@ exports.isLoggedIn = catchAsync(async (req, res, next) => {
         return next(new AppError('Token verification failed', 401));
     }
 
-    const user = await User.findByPk(payload.userId);
+    const user = await User.scope('withPassword').findByPk(payload.userId);
 
     if (!user) {
         return next(
