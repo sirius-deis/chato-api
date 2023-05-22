@@ -1,5 +1,4 @@
 const jwt = require('jsonwebtoken');
-const { validationResult } = require('express-validator');
 const crypto = require('crypto');
 
 const catchAsync = require('../utils/catchAsync');
@@ -9,6 +8,7 @@ const sendMail = require('../utils/email');
 
 const User = require('../models/user.models');
 const ActivateToken = require('../models/activateToken.models');
+const ResetToken = require('../models/resetToken.models');
 
 const { MODE, PORT, JWT_SECRET, JWT_EXPIRES_IN } = process.env;
 
@@ -26,17 +26,16 @@ const sendResponseWithJwtToken = (res, statusCode, data, userId) => {
     res.status(statusCode).json(data);
 };
 
-const sendResponseWithErrors = (errors, next) => {
-    const errorsArr = errors.map(
-        error =>
-            `${error.msg}. Field '${error.path}' with value '${error.value}' doesn't pass validation`
-    );
-    next(new AppError(errorsArr, 400));
-};
-
 const createToken = () => {
     const hash = crypto.randomBytes(32).toString('hex');
     return hash;
+};
+
+const buildLink = (req, token, route) => {
+    const link = `${req.protocol}://${req.hostname}${
+        MODE === 'development' ? `:${PORT}` : ''
+    }${req.baseUrl}/${route}/${token}`;
+    return link;
 };
 
 const filterFieldsForUpdating = fields => {
@@ -55,12 +54,6 @@ const filterFieldsForUpdating = fields => {
 exports.signup = catchAsync(async (req, res, next) => {
     const { email, password, passwordConfirm } = req.body;
 
-    const { errors } = validationResult(req);
-    if (errors.length) {
-        sendResponseWithErrors(errors, next);
-        return;
-    }
-
     if (!arePasswordsTheSame(password, passwordConfirm)) {
         return next(
             new AppError(
@@ -76,9 +69,7 @@ exports.signup = catchAsync(async (req, res, next) => {
 
     await ActivateToken.create({ token, userId: user.id });
 
-    const link = `${req.protocol}://${req.hostname}${
-        MODE === 'development' ? `:${PORT}` : ''
-    }${req.baseUrl}/activate/${token}`;
+    const link = buildLink(req, token, 'activate');
 
     await sendMail(email, 'Activate your Chato account', 'verification', {
         link,
@@ -93,12 +84,6 @@ exports.signup = catchAsync(async (req, res, next) => {
 
 exports.login = catchAsync(async (req, res, next) => {
     const { email, password } = req.body;
-
-    const { errors } = validationResult(req);
-    if (errors.length) {
-        sendResponseWithErrors(errors, next);
-        return;
-    }
 
     const user = await User.scope('withPassword').findOne({
         where: { email },
@@ -144,15 +129,6 @@ exports.activate = catchAsync(async (req, res, next) => {
         return next(new AppError('Token is invalid. Please try again', 400));
     }
 
-    if (user.isActive) {
-        return next(
-            new AppError(
-                'Current account has been already verified. Please login or reset you password if you have any problems',
-                400
-            )
-        );
-    }
-
     await user.update({ isActive: true });
     await token.destroy();
 
@@ -185,12 +161,6 @@ exports.updateMe = catchAsync(async (req, res, next) => {
     const { user } = req;
     const { firstName, lastName, bio } = req.body;
 
-    const { errors } = validationResult(req);
-    if (errors.length) {
-        sendResponseWithErrors(errors, next);
-        return;
-    }
-
     const fieldsToInsert = filterFieldsForUpdating({
         firstName,
         lastName,
@@ -213,12 +183,6 @@ exports.updateMe = catchAsync(async (req, res, next) => {
 exports.updatePassword = catchAsync(async (req, res, next) => {
     const { user } = req;
     const { password, passwordConfirm, currentPassword } = req.body;
-
-    const { errors } = validationResult(req);
-    if (errors.length) {
-        sendResponseWithErrors(errors, next);
-        return;
-    }
 
     if (!(await user.validatePassword(currentPassword))) {
         return next(new AppError('Incorrect password', 403));
@@ -246,18 +210,34 @@ exports.updatePassword = catchAsync(async (req, res, next) => {
     });
 });
 
-//TODO:
-exports.forgetPassword = catchAsync(async (req, res, next) => {});
+exports.forgetPassword = catchAsync(async (req, res, next) => {
+    const { email } = req.body;
+    const user = await User.findOne({ where: { email } });
+
+    if (!user) {
+        return next(new AppError('There is not user with such email', 400));
+    }
+
+    const token = createToken();
+    await ResetToken.create({ token, userId: user.id });
+
+    const link = buildLink(req, token, 'reset-password');
+    await sendMail(user.email, 'Reset password', 'reset', { link });
+
+    res.status(200).json({
+        message:
+            'Reset token was sent to your email. Check it and follow instructions inside it',
+    });
+});
+
+exports.logout = catchAsync(async (req, res, next) => {
+    res.clearCookie('token');
+    res.status(204).json({ message: 'You was logged out successfully' });
+});
 
 exports.delete = catchAsync(async (req, res, next) => {
     const { user } = req;
     const { password } = req.body;
-
-    const { errors } = validationResult(req);
-    if (errors.length) {
-        sendResponseWithErrors(errors, next);
-        return;
-    }
 
     if (!(await user.validatePassword(password))) {
         return next(new AppError('Incorrect password', 400));
@@ -273,12 +253,6 @@ exports.delete = catchAsync(async (req, res, next) => {
 exports.deactivate = catchAsync(async (req, res, next) => {
     const { user } = req;
     const { password } = req.body;
-
-    const { errors } = validationResult(req);
-    if (errors.length) {
-        sendResponseWithErrors(errors, next);
-        return;
-    }
 
     if (!(await user.validatePassword(password))) {
         return next(new AppError('Incorrect password', 400));
