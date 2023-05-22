@@ -97,6 +97,7 @@ const User = sequelize.define(
                     'passwordChangedAt',
                     'createdAt',
                     'updatedAt',
+                    'password',
                 ],
             },
         },
@@ -107,9 +108,9 @@ User.prototype.validatePassword = async function (password) {
     return await bcrypt.compare(password, this.password);
 };
 
-User.addScope('withoutPassword', {
+User.addScope('withPassword', {
     attributes: {
-        exclude: ['password'],
+        include: ['password'],
     },
 });
 

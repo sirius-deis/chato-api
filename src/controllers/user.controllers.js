@@ -62,7 +62,7 @@ exports.login = catchAsync(async (req, res, next) => {
         return next(new AppError(errorsArr, 400));
     }
 
-    const user = await User.findOne({
+    const user = await User.scope('withPassword').findOne({
         where: { email },
     });
 

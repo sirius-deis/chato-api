@@ -2,6 +2,7 @@ const express = require('express');
 
 const userController = require('../controllers/user.controllers');
 const { isEmail, isNotEmptyWithLength } = require('../utils/validator');
+const { isLoggedIn } = require('../middlewares/auth.middlewares');
 
 const userRouter = express.Router();
 
@@ -19,5 +20,7 @@ userRouter.post(
     isNotEmptyWithLength('password'),
     userController.login
 );
+
+userRouter.post('/test', isLoggedIn);
 
 module.exports = userRouter;
