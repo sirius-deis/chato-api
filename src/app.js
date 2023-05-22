@@ -4,7 +4,12 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
-var compression = require('compression');
+const compression = require('compression');
+
+const catchAsync = require('./utils/catchAsync');
+const AppError = require('./utils/appError');
+const globalErrorHandler = require('./controllers/error.controllers');
+const userRouter = require('./routes/user.routes');
 
 const app = express();
 
@@ -33,5 +38,18 @@ app.use(cookieParser());
 app.use(limiter);
 app.use(helmet());
 app.use(compression());
+
+app.use('/api/v1/users', userRouter);
+
+app.all(
+    '*',
+    catchAsync((req, res, next) => {
+        next(
+            new AppError(`Can\'t find ${req.originalUrl} on this server`, 404)
+        );
+    })
+);
+
+app.use(globalErrorHandler);
 
 module.exports = app;
