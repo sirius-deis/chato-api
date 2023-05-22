@@ -21,11 +21,18 @@ userRouter.post(
     userController.login
 );
 
+userRouter.use(isLoggedIn);
+
 userRouter.post(
     '/delete',
-    isLoggedIn,
     isNotEmptyWithLength('password'),
     userController.delete
+);
+
+userRouter.post(
+    '/deactivate',
+    isNotEmptyWithLength('password'),
+    userController.deactivate
 );
 
 module.exports = userRouter;

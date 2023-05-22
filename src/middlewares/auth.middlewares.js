@@ -27,6 +27,15 @@ exports.isLoggedIn = catchAsync(async (req, res, next) => {
         );
     }
 
+    if (!user.dataValues.isActive) {
+        return next(
+            new AppError(
+                'Your account is deactivated. Please reactivate your account and then try again',
+                403
+            )
+        );
+    }
+
     req.user = user;
 
     next();

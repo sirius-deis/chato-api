@@ -107,3 +107,24 @@ exports.delete = catchAsync(async (req, res, next) => {
 
     res.status(204).json({ message: 'Your account was deleted successfully' });
 });
+
+exports.deactivate = catchAsync(async (req, res, next) => {
+    const { user } = req;
+    const { password } = req.body;
+
+    const { errors } = validationResult(req);
+    if (errors.length) {
+        sendResponseWithErrors(errors, next);
+        return;
+    }
+
+    if (!(await user.validatePassword(password))) {
+        return next(new AppError('Incorrect password', 400));
+    }
+
+    await user.set({ isActive: false });
+
+    res.clearCookie('token');
+
+    res.status(204).json({ message: 'Your account was deleted successfully' });
+});
