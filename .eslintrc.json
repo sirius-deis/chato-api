@@ -1,0 +1,33 @@
+{
+  "env": {
+    "node": true,
+    "commonjs": true,
+    "es2021": true
+  },
+  "extends": ["eslint:recommended", "plugin:node/recommended", "prettier", "airbnb"],
+  "overrides": [],
+  "parserOptions": {
+    "ecmaVersion": "latest"
+  },
+  "rules": {
+    "spaced-comment": "off",
+    "no-console": "warn",
+    "consistent-return": "off",
+    "no-process-exit": "off",
+    "no-param-reassign": "off",
+    "prefer-destructuring": [
+      "error",
+      {
+        "object": true,
+        "array": false
+      }
+    ],
+    "no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "req|res|next"
+      }
+    ]
+  },
+  "plugins": ["prettier"]
+}

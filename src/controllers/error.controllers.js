@@ -1,20 +1,18 @@
 const chalk = require('chalk');
 
-const { MODE } = process.env;
+const { NODE_ENV } = process.env;
 
 module.exports = (err, req, res, next) => {
-    if (MODE === 'development') {
-        console.log(
-            chalk.bgRedBright.bold('SERVER ERROR'),
-            chalk.redBright(`${err.name}\n`),
-            chalk.redBright.italic(err.stack)
-        );
-        res.status(err.statusCode || 500).json({ message: err.message });
-    } else {
-        res.status(err.isOperational ? err.statusCode : 500).json({
-            message: err.isOperational
-                ? err.message
-                : 'Something went wrong, please try again later',
-        });
-    }
+  if (NODE_ENV === 'development') {
+    console.log(
+      chalk.bgRedBright.bold('SERVER ERROR'),
+      chalk.redBright(`${err.name}\n`),
+      chalk.redBright.italic(err.stack),
+    );
+    res.status(err.statusCode || 500).json({ message: err.message });
+  } else {
+    res.status(err.isOperational ? err.statusCode : 500).json({
+      message: err.isOperational ? err.message : 'Something went wrong, please try again later',
+    });
+  }
 };

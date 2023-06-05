@@ -5,32 +5,31 @@ const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const compression = require('compression');
-const path = require('path');
 
-const catchAsync = require('./utils/catchAsync');
 const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/error.controllers');
 const userRouter = require('./routes/user.routes');
+const conversationRoutes = require('./routes/conversation.routes');
 
 const app = express();
 
-const { MODE = 'production' } = process.env;
+const { NODE_ENV = 'production' } = process.env;
 const corsOptions = {
-    origin: true,
-    credentials: true,
+  origin: true,
+  credentials: true,
 };
 const limiter = rateLimit({
-    max: 1000,
-    windowsMs: 60 * 60 * 1000,
-    message: 'Too many request from this IP, please try again later',
+  max: 1000,
+  windowsMs: 60 * 60 * 1000,
+  message: 'Too many request from this IP, please try again later',
 });
 
 app.disable('x-powered-by');
 
-if (MODE === 'development') {
-    app.use(morgan('dev'));
+if (NODE_ENV === 'development') {
+  app.use(morgan('dev'));
 } else {
-    app.use(morgan('tiny'));
+  app.use(morgan('tiny'));
 }
 app.use(express.static('public'));
 app.use(cors(corsOptions));
@@ -42,9 +41,10 @@ app.use(helmet());
 app.use(compression());
 
 app.use('/api/v1/users', userRouter);
+app.use('/api/v1/conversations', conversationRoutes);
 
 app.all('*', (req, res, next) => {
-    next(new AppError(`Can\'t find ${req.originalUrl} on this server`, 404));
+  next(new AppError(`Can't find ${req.originalUrl} on this server`, 404));
 });
 
 app.use(globalErrorHandler);
