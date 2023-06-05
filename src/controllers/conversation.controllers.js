@@ -37,7 +37,7 @@ exports.getAllConversations = catchAsync(async (req, res, next) => {
 
 exports.createConversation = catchAsync(async (req, res, next) => {
   const { user } = req;
-  const { receiverId } = req.body;
+  const { receiverId } = req.params;
   const receiver = await User.findByPk(receiverId);
   if (!receiver) {
     return next(new AppError('There is no user with such id', 404));
