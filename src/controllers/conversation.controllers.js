@@ -41,9 +41,13 @@ exports.getAllConversations = catchAsync(async (req, res, next) => {
     });
   }
 
+  const deletedConversationsForUser = await DeletedConversation.findAll({ where: { user_id: user.dataValues.id } });
+  const deletedIds = deletedConversationsForUser.map((conversation) => conversation.id);
   return res.status(200).json({
     message: 'Conversations were found',
-    conversations: participants.map((participant) => participant.conversations[0]),
+    conversations: participants
+      .map((participant) => participant.conversations[0])
+      .filter((conversation) => deletedIds.includes(conversation.id)),
   });
 });
 
