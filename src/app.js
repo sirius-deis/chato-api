@@ -9,7 +9,8 @@ const compression = require('compression');
 const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/error.controllers');
 const userRouter = require('./routes/user.routes');
-const conversationRoutes = require('./routes/conversation.routes');
+const conversationRouter = require('./routes/conversation.routes');
+const messageRouter = require('./routes/message.routes');
 
 const app = express();
 
@@ -41,7 +42,8 @@ app.use(helmet());
 app.use(compression());
 
 app.use('/api/v1/users', userRouter);
-app.use('/api/v1/conversations', conversationRoutes);
+app.use('/api/v1/conversations', conversationRouter);
+app.use('/api/v1/messages', messageRouter);
 
 app.all('*', (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server`, 404));

@@ -28,6 +28,9 @@ Conversation.belongsTo(User, { foreignKey: 'creator_id' });
 User.hasOne(Participant, { foreignKey: 'user_id' });
 Participant.belongsTo(User, { foreignKey: 'user_id' });
 
+Conversation.hasMany(Message, { onDelete: 'cascade', foreignKey: 'conversation_id' });
+Message.belongsTo(Conversation, { foreignKey: 'conversation_id' });
+
 Participant.hasMany(Message, { onDelete: 'cascade', foreignKey: 'sender_id' });
 Message.belongsTo(Participant, { foreignKey: 'sender_id' });
 

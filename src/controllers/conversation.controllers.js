@@ -41,13 +41,16 @@ exports.getAllConversations = catchAsync(async (req, res, next) => {
     });
   }
 
+  // eslint-disable-next-line max-len
   const deletedConversationsForUser = await DeletedConversation.findAll({ where: { user_id: user.dataValues.id } });
   const deletedIds = deletedConversationsForUser.map((conversation) => conversation.id);
   return res.status(200).json({
     message: 'Conversations were found',
-    conversations: participants
-      .map((participant) => participant.conversations[0])
-      .filter((conversation) => deletedIds.includes(conversation.id)),
+    data: {
+      conversations: participants
+        .map((participant) => participant.conversations[0])
+        .filter((conversation) => deletedIds.includes(conversation.id)),
+    },
   });
 });
 
@@ -84,7 +87,9 @@ exports.createConversation = catchAsync(async (req, res, next) => {
         user_id: receiverId,
       }),
     ]);
+    // eslint-disable-next-line max-len
     await participants[0].addConversation(conversation.dataValues.id, participants[0].dataValues.id);
+    // eslint-disable-next-line max-len
     await participants[1].addConversation(conversation.dataValues.id, participants[1].dataValues.id);
   });
 
@@ -99,8 +104,10 @@ exports.deleteConversation = catchAsync(async (req, res, next) => {
 
   const conversation = await Conversation.findByPk(conversationId);
 
+  // eslint-disable-next-line max-len
   const participants = await Participant.findAll({ where: { user_id: user.id }, include: [{ model: Conversation }] });
   const participantInConversation = participants.find(
+    // eslint-disable-next-line max-len
     (participant) => participant.dataValues.conversations[0].dataValues.id === conversation.dataValues.id,
   );
 
@@ -122,6 +129,7 @@ exports.deleteConversation = catchAsync(async (req, res, next) => {
   }
 
   if (participantInConversation) {
+    // eslint-disable-next-line max-len
     await DeletedConversation.create({ user_id: user.dataValues.id, conversation_id: conversationId });
   }
 

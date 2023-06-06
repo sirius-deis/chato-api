@@ -5,13 +5,16 @@ const {
   deleteConversation,
 } = require('../controllers/conversation.controllers');
 const auth = require('../middlewares/auth.middlewares');
+const messageRouter = require('./message.routes');
 
-const conversationRoutes = express.Router({ mergeParams: true });
+const conversationRouter = express.Router({ mergeParams: true });
 
-conversationRoutes.use(auth.isLoggedIn);
+conversationRouter.use('/:conversationId/messages', messageRouter);
 
-conversationRoutes.route('/').get(getAllConversations).post(createConversation);
+conversationRouter.use(auth.isLoggedIn);
 
-conversationRoutes.route('/:conversationId').delete(deleteConversation);
+conversationRouter.route('/').get(getAllConversations).post(createConversation);
 
-module.exports = conversationRoutes;
+conversationRouter.route('/:conversationId').delete(deleteConversation);
+
+module.exports = conversationRouter;

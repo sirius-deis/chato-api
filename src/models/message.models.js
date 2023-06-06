@@ -1,22 +1,12 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../db/db.config');
 
-const Message = sequelize.define('Messages', {
+const Message = sequelize.define('messages', {
   id: {
     type: DataTypes.INTEGER,
     autoIncrement: true,
     primaryKey: true,
     allowNull: false,
-  },
-  conversationId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    field: 'conversation_id',
-  },
-  userId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    field: 'user_id',
   },
   messageType: {
     type: DataTypes.ENUM('text', 'image', 'audio', 'video', 'system'),

@@ -11,6 +11,7 @@ const User = require('../models/user.models');
 const ActivateToken = require('../models/activateToken.models');
 const ResetToken = require('../models/resetToken.models');
 
+// eslint-disable-next-line object-curly-newline
 const { MODE, PORT, JWT_SECRET, JWT_EXPIRES_IN } = process.env;
 
 const signToken = (userId) => jwt.sign({ userId }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
@@ -38,6 +39,7 @@ const buildLink = (req, token, route) => {
 const filterFieldsForUpdating = (fields) => {
   const map = {};
   let isInserted = false;
+  // eslint-disable-next-line no-restricted-syntax
   for (const field in fields) {
     if (fields[field]) {
       map[field] = fields[field];
@@ -253,7 +255,7 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
 
 exports.logout = catchAsync(async (req, res) => {
   res.clearCookie('token');
-  res.status(204).json({ message: 'You was logged out successfully' });
+  res.status(204).send();
 });
 
 exports.delete = catchAsync(async (req, res, next) => {
@@ -268,7 +270,7 @@ exports.delete = catchAsync(async (req, res, next) => {
 
   res.clearCookie('token');
 
-  res.status(204).json({ message: 'Your account was deleted successfully' });
+  res.status(204).send();
 });
 
 exports.deactivate = catchAsync(async (req, res, next) => {
@@ -285,5 +287,5 @@ exports.deactivate = catchAsync(async (req, res, next) => {
 
   res.clearCookie('token');
 
-  res.status(204).json({ message: 'Your account was deleted successfully' });
+  res.status(204).send();
 });
