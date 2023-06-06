@@ -3,6 +3,9 @@ const ActivateToken = require('./models/activateToken.models');
 const ResetToken = require('./models/resetToken.models');
 const Conversation = require('./models/conversation.models');
 const Participant = require('./models/participant.models');
+const Message = require('./models/message.models');
+const DeletedConversation = require('./models/deletedConversation.models');
+const DeletedMessage = require('./models/deletedMessage.models');
 
 User.hasOne(ActivateToken, { onDelete: 'cascade', foreignKey: 'user_id' });
 ActivateToken.belongsTo(User, { foreignKey: 'user_id' });
@@ -24,3 +27,23 @@ Conversation.belongsTo(User, { foreignKey: 'creator_id' });
 
 User.hasOne(Participant, { foreignKey: 'user_id' });
 Participant.belongsTo(User, { foreignKey: 'user_id' });
+
+Participant.hasMany(Message, { onDelete: 'cascade', foreignKey: 'sender_id' });
+Message.belongsTo(Participant, { foreignKey: 'sender_id' });
+
+User.hasMany(DeletedConversation, { onDelete: 'cascade', foreignKey: 'user_id' });
+DeletedConversation.belongsTo(User, { foreignKey: 'user_id' });
+
+Conversation.hasOne(DeletedConversation, { onDelete: 'cascade', foreignKey: 'conversation_id' });
+DeletedConversation.belongsTo(Conversation, { foreignKey: 'conversation_id' });
+
+User.hasMany(DeletedMessage, {
+  onDelete: 'cascade',
+  foreignKey: 'user_id',
+});
+DeletedMessage.belongsTo(User, {
+  foreignKey: 'user_id',
+});
+
+Message.hasOne(DeletedMessage, { onDelete: 'cascade', foreignKey: 'message_id' });
+DeletedMessage.belongsTo(Message, { foreignKey: 'message_id' });

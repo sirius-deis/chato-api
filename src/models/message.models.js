@@ -23,9 +23,8 @@ const Message = sequelize.define('Messages', {
     allowNull: false,
     field: 'message_type',
   },
-  content: {
-    type: DataTypes.ARRAY(DataTypes.TEXT),
-    allowNull: false,
+  message: {
+    type: DataTypes.TEXT,
   },
   repliedMessageId: {
     type: DataTypes.INTEGER,

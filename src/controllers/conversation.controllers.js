@@ -1,6 +1,7 @@
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 const Conversation = require('../models/conversation.models');
+const DeletedConversation = require('../models/deletedConversation.models');
 const User = require('../models/user.models');
 const Participant = require('../models/participant.models');
 const { sequelize, Sequelize } = require('../db/db.config');
@@ -95,13 +96,29 @@ exports.deleteConversation = catchAsync(async (req, res, next) => {
   const conversation = await Conversation.findByPk(conversationId);
 
   const participants = await Participant.findAll({ where: { user_id: user.id }, include: [{ model: Conversation }] });
-  const isFound = participants.find(
+  const participantInConversation = participants.find(
     (participant) => participant.dataValues.conversations[0].dataValues.id === conversation.dataValues.id,
   );
 
-  if (isFound) {
-    await conversation.removeParticipants();
-    await conversation.destroy();
+  if (!participantInConversation) {
+    return next(new AppError('There is no such conversation', 404));
+  }
+
+  const isDeleted = await DeletedConversation.findOne({
+    where: Sequelize.and(
+      {
+        user_id: user.dataValues.id,
+      },
+      { conversation_id: conversationId },
+    ),
+  });
+
+  if (isDeleted) {
+    return next(new AppError('There conversation is already deleted', 404));
+  }
+
+  if (participantInConversation) {
+    await DeletedConversation.create({ user_id: user.dataValues.id, conversation_id: conversationId });
   }
 
   res.status(201).json({
