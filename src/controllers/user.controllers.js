@@ -67,6 +67,7 @@ exports.signup = catchAsync(async (req, res, next) => {
   });
 
   await sendMail(email, 'Activate your Chato account', 'verification', {
+    title: 'Please activate your account',
     link,
     email,
   });
@@ -213,7 +214,7 @@ exports.forgetPassword = catchAsync(async (req, res, next) => {
   await ResetToken.create({ token, userId: user.id });
 
   const link = buildLink(req, token, 'reset-password');
-  await sendMail(user.email, 'Reset password', 'reset', { link });
+  await sendMail(user.email, 'Reset password', 'reset', { title: 'Reset your password', link });
 
   res.status(200).json({
     message: 'Reset token was sent to your email. Check it and follow instructions inside it',

@@ -15,20 +15,23 @@ const transporter = nodemailer.createTransport({
 
 const handlebarOptions = {
   viewEngine: {
-    partialsDir: path.resolve('./emails/'),
-    defaultLayout: false,
+    extname: '.handlebars',
+    partialsDir: path.resolve(__dirname, '../views', 'emails'),
+    layoutsDir: path.resolve(__dirname, '../views', 'emails', 'layouts'),
+    defaultLayout: path.resolve(__dirname, '../views', 'emails', 'layouts', 'root.emails.handlebars'),
   },
   viewPath: path.resolve(__dirname, '../views/emails/'),
+  extName: '.handlebars',
 };
 
 transporter.use('compile', hbs(handlebarOptions));
 
 const sendMail = async (to, subject, template, context) => {
   const mailOptions = {
-    from: EMAIL_USER,
+    from: `< Name Surname ${EMAIL_USER}>`,
     to,
     subject,
-    template: `${template}.email`,
+    template: `${template}.emails`,
     context,
   };
   try {
