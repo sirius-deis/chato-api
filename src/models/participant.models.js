@@ -10,6 +10,7 @@ const Participant = sequelize.define('participants', {
   },
   type: {
     type: DataTypes.ENUM('user', 'admin', 'owner'),
+    default: 'user',
   },
 });
 

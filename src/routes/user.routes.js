@@ -1,11 +1,14 @@
 const express = require('express');
 
 const userController = require('../controllers/user.controllers');
+const conversationRouter = require('./conversation.routes');
 const { isEmail, isNotEmptyWithLength } = require('../utils/validator');
 const { isLoggedIn } = require('../middlewares/auth.middlewares');
 const validationMiddleware = require('../middlewares/validation.middlewares');
 
 const userRouter = express.Router();
+
+userRouter.use('/:receiverId/conversations/', conversationRouter);
 
 userRouter.post(
   '/signup',

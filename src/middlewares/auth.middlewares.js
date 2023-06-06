@@ -26,8 +26,6 @@ exports.isLoggedIn = catchAsync(async (req, res, next) => {
     return next(new AppError("User wasn't found. Please try to login again", 404));
   }
 
-  console.log(user.dataValues.isActive);
-
   if (!user.dataValues.isActive) {
     return next(new AppError('Your account is deactivated. Please reactivate your account and then try again', 403));
   }

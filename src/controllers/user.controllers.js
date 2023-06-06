@@ -57,7 +57,6 @@ exports.signup = catchAsync(async (req, res, next) => {
   let link;
   await sequelize.transaction(async () => {
     const user = await User.create({ email, password });
-
     const token = createToken();
 
     await ActivateToken.create({ token, user_id: user.id });
