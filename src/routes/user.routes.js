@@ -13,6 +13,7 @@ const {
   updateMe,
   updatePassword,
   blockUser,
+  unblockUser,
 } = require('../controllers/user.controllers');
 const conversationRouter = require('./conversation.routes');
 const { isEmail, isNotEmptyWithLength } = require('../utils/validator');
@@ -51,7 +52,8 @@ userRouter.get('/logout', logout);
 
 userRouter.get('/:userId').get(getUser);
 
-userRouter.post('/block/:userId').get(blockUser);
+userRouter.post('/block/:userId').post(blockUser);
+userRouter.post('/unblock/:userId').delete(unblockUser);
 
 userRouter
   .route('/update')

@@ -314,7 +314,7 @@ exports.deactivate = catchAsync(async (req, res, next) => {
 exports.blockUser = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { userId } = req.params;
-  if (user.dataValues === userId) {
+  if (user.dataValues.id === userId) {
     return next(new AppError("You can't block yourself", 400));
   }
   const userToBlock = await User.findByPk(userId);
@@ -336,6 +336,32 @@ exports.blockUser = catchAsync(async (req, res, next) => {
   }
 
   res.status(201).json({ message: 'Selected user was blocked successfully' });
+});
+
+exports.unblockUser = catchAsync(async (req, res, next) => {
+  const { user } = req;
+  const { userId } = req.params;
+  if (user.dataValues.id === userId) {
+    return next(new AppError("You can't block yourself", 400));
+  }
+  const userToUnblock = await User.findByPk(userId);
+  if (!userToUnblock) {
+    return next(new AppError('There is no user with such id', 404));
+  }
+
+  const blockList = await BlockList.findOne({ user_id: user.dataValues.id });
+  if (!blockList) {
+    return next(new AppError('There is user is not blocked', 400));
+  }
+
+  if (!blockList.blocked_users.includes(userId)) {
+    return next(new AppError('There is user is not blocked', 400));
+  }
+
+  blockList.blocked_users = blockList.blocked_users.filter((blockedId) => blockedId !== userId);
+  await blockList.save();
+
+  res.status(204).send();
 });
 
 //TODO: unblock user, report
