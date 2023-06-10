@@ -364,4 +364,8 @@ exports.unblockUser = catchAsync(async (req, res, next) => {
   res.status(204).send();
 });
 
-//TODO: unblock user, report
+exports.blockAccount catchAsync(async (req, res, next) => {});
+
+exports.unblockAccount catchAsync(async (req, res, next) => {});
+
+//TODO: report

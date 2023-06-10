@@ -34,3 +34,16 @@ exports.isLoggedIn = catchAsync(async (req, res, next) => {
 
   next();
 });
+
+exports.inAuthorized = (...roles) =>
+  catchAsync(async (req, res, next) => {
+    const { user } = req;
+    if (!user) {
+      return next(new AppError("User wasn't found. Please try to login again", 404));
+    }
+    if (!roles.includes(user.dataValues.role)) {
+      return next(new AppError("You don'\t have permission to access this route", 403));
+    }
+
+    next();
+  });
