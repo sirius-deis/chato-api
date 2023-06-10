@@ -1,10 +1,12 @@
 {
-  "name": "chato-api",
+  "name": "chatoron-api",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
+    "test:w": "jest --w",
+    "coverage": "jest - --coverage",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "debug": "node --inspect src/server.js",

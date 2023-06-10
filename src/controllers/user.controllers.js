@@ -132,20 +132,39 @@ exports.activate = catchAsync(async (req, res, next) => {
   });
 });
 
-exports.me = catchAsync(async (req, res) => {
+exports.getUser = catchAsync(async (req, res, next) => {
   const { user } = req;
+  const { userId } = req.params;
+
+  if (user.dataValues.id === userId) {
+    return res.status(200).json({
+      message: 'Data was retrieved successfully',
+      data: {
+        user: {
+          id: user.id,
+          phone: user.phone,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          bio: user.bio,
+        },
+      },
+    });
+  }
+
+  const retrievedUser = await User.findByPk(userId);
+  if (!retrievedUser) {
+    return next(new AppError('There is no user with such id', 404));
+  }
 
   res.status(200).json({
     message: 'Data was retrieved successfully',
     data: {
       user: {
-        id: user.id,
-        phone: user.phone,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        bio: user.bio,
-        role: user.role,
+        id: retrievedUser.id,
+        email: retrievedUser.email,
+        firstName: retrievedUser.firstName,
+        bio: retrievedUser.bio,
       },
     },
   });
@@ -259,7 +278,7 @@ exports.logout = catchAsync(async (req, res) => {
   res.status(204).send();
 });
 
-exports.delete = catchAsync(async (req, res, next) => {
+exports.deleteMe = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { password } = req.body;
 
@@ -290,3 +309,5 @@ exports.deactivate = catchAsync(async (req, res, next) => {
 
   res.status(204).send();
 });
+
+//TODO: block user, report

@@ -1,6 +1,18 @@
 const express = require('express');
 
-const userController = require('../controllers/user.controllers');
+const {
+  activate,
+  deactivate,
+  deleteMe,
+  forgetPassword,
+  getUser,
+  login,
+  logout,
+  resetPassword,
+  signup,
+  updateMe,
+  updatePassword,
+} = require('../controllers/user.controllers');
 const conversationRouter = require('./conversation.routes');
 const { isEmail, isNotEmptyWithLength } = require('../utils/validator');
 const { isLoggedIn } = require('../middlewares/auth.middlewares');
@@ -15,36 +27,37 @@ userRouter.post(
   isEmail(),
   isNotEmptyWithLength('password'),
   isNotEmptyWithLength('passwordConfirm'),
-  userController.signup,
+  signup,
 );
 
-userRouter.get('/activate/:activateToken', userController.activate);
+userRouter.get('/activate/:activateToken', activate);
 
-userRouter.post('/login', isEmail(), isNotEmptyWithLength('password'), validationMiddleware, userController.login);
+userRouter.post('/login', isEmail(), isNotEmptyWithLength('password'), validationMiddleware, login);
 
-userRouter.post('/forget-password', isEmail(), validationMiddleware, userController.forgetPassword);
+userRouter.post('/forget-password', isEmail(), validationMiddleware, forgetPassword);
 
 userRouter.patch(
   '/reset-password/:resetToken',
   isNotEmptyWithLength('password'),
   isNotEmptyWithLength('passwordConfirm'),
   validationMiddleware,
-  userController.resetPassword,
+  resetPassword,
 );
 
 userRouter.use(isLoggedIn);
 
-userRouter.get('/logout', userController.logout);
+userRouter.get('/logout', logout);
+
+userRouter.get('/:userId').get(getUser);
 
 userRouter
-  .route('/me')
-  .get(userController.me)
+  .route('/update')
   .patch(
     isNotEmptyWithLength('firstName'),
     isNotEmptyWithLength('lastName'),
     isNotEmptyWithLength('bio', 1, 256),
     validationMiddleware,
-    userController.updateMe,
+    updateMe,
   );
 
 userRouter.post(
@@ -53,11 +66,11 @@ userRouter.post(
   isNotEmptyWithLength('passwordConfirm'),
   isNotEmptyWithLength('currentPassword'),
   validationMiddleware,
-  userController.updatePassword,
+  updatePassword,
 );
 
-userRouter.post('/delete', isNotEmptyWithLength('password'), validationMiddleware, userController.delete);
+userRouter.post('/delete', isNotEmptyWithLength('password'), validationMiddleware, deleteMe);
 
-userRouter.post('/deactivate', isNotEmptyWithLength('password'), validationMiddleware, userController.deactivate);
+userRouter.post('/deactivate', isNotEmptyWithLength('password'), validationMiddleware, deactivate);
 
 module.exports = userRouter;
