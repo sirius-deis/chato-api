@@ -14,10 +14,12 @@ const {
   updatePassword,
   blockUser,
   unblockUser,
+  blockAccount,
+  unblockAccount,
 } = require('../controllers/user.controllers');
 const conversationRouter = require('./conversation.routes');
 const { isEmail, isNotEmptyWithLength } = require('../utils/validator');
-const { isLoggedIn } = require('../middlewares/auth.middlewares');
+const { isLoggedIn, inAuthorized } = require('../middlewares/auth.middlewares');
 const validationMiddleware = require('../middlewares/validation.middlewares');
 
 const userRouter = express.Router();
@@ -77,5 +79,8 @@ userRouter.post(
 userRouter.post('/delete', isNotEmptyWithLength('password'), validationMiddleware, deleteMe);
 
 userRouter.post('/deactivate', isNotEmptyWithLength('password'), validationMiddleware, deactivate);
+
+userRouter.post('/block-account/:userId').post(inAuthorized('admin', 'moderator'), blockAccount);
+userRouter.post('/unblock-account/:userId').delete(inAuthorized('admin'), unblockAccount);
 
 module.exports = userRouter;

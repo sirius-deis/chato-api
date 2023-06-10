@@ -36,6 +36,7 @@ exports.isLoggedIn = catchAsync(async (req, res, next) => {
 });
 
 exports.inAuthorized = (...roles) =>
+  // eslint-disable-next-line implicit-arrow-linebreak
   catchAsync(async (req, res, next) => {
     const { user } = req;
     if (!user) {

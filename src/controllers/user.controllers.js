@@ -364,8 +364,26 @@ exports.unblockUser = catchAsync(async (req, res, next) => {
   res.status(204).send();
 });
 
-exports.blockAccount catchAsync(async (req, res, next) => {});
+exports.blockAccount = catchAsync(async (req, res, next) => {
+  const { userId } = req.params;
+  const userToBlock = await User.findByPk(userId);
+  if (!userToBlock) {
+    return next(new AppError('There is no user with such id', 404));
+  }
+  userToBlock.dataValues.isBlocked = true;
+  await userToBlock.save();
+  res.status(200).json({ message: 'User account was blocked successfully' });
+});
 
-exports.unblockAccount catchAsync(async (req, res, next) => {});
+exports.unblockAccount = catchAsync(async (req, res, next) => {
+  const { userId } = req.params;
+  const userToUnblock = await User.findByPk(userId);
+  if (!userToUnblock) {
+    return next(new AppError('There is no user with such id', 404));
+  }
+  userToUnblock.dataValues.isBlocked = false;
+  await userToUnblock.save();
+  res.status(200).json({ message: 'User account was blocked successfully' });
+});
 
 //TODO: report
