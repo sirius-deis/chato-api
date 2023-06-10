@@ -16,6 +16,7 @@ const {
   unblockUser,
   blockAccount,
   unblockAccount,
+  report,
 } = require('../controllers/user.controllers');
 const conversationRouter = require('./conversation.routes');
 const { isEmail, isNotEmptyWithLength } = require('../utils/validator');
@@ -79,6 +80,8 @@ userRouter.post(
 userRouter.post('/delete', isNotEmptyWithLength('password'), validationMiddleware, deleteMe);
 
 userRouter.post('/deactivate', isNotEmptyWithLength('password'), validationMiddleware, deactivate);
+
+userRouter.post('/report/:userId', report);
 
 userRouter.post('/block-account/:userId').post(inAuthorized('admin', 'moderator'), blockAccount);
 userRouter.post('/unblock-account/:userId').delete(inAuthorized('admin'), unblockAccount);

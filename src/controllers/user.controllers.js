@@ -386,4 +386,22 @@ exports.unblockAccount = catchAsync(async (req, res, next) => {
   res.status(200).json({ message: 'User account was blocked successfully' });
 });
 
-//TODO: report
+exports.report = catchAsync(async (req, res, next) => {
+  const { user } = req;
+  const { userId } = req.params;
+
+  if (user.dataValues.id === userId) {
+    return next(new AppError("You can't block yourself", 400));
+  }
+
+  const userToReport = await User.findByPk(userId);
+
+  if (!userToReport) {
+    return next(new AppError('There is no user with such id', 404));
+  }
+
+  userToReport.dataValues.isReported = true;
+  await userToReport.save();
+
+  res.status(200).json({ message: 'User account was reported successfully' });
+});
