@@ -6,6 +6,7 @@ const Participant = require('./models/participant.models');
 const Message = require('./models/message.models');
 const DeletedConversation = require('./models/deletedConversation.models');
 const DeletedMessage = require('./models/deletedMessage.models');
+const BlockList = require('./models/blockList.models');
 
 User.hasOne(ActivateToken, { onDelete: 'cascade', foreignKey: 'user_id' });
 ActivateToken.belongsTo(User, { foreignKey: 'user_id' });
@@ -50,3 +51,6 @@ DeletedMessage.belongsTo(User, {
 
 Message.hasOne(DeletedMessage, { onDelete: 'cascade', foreignKey: 'message_id' });
 DeletedMessage.belongsTo(Message, { foreignKey: 'message_id' });
+
+User.hasOne(BlockList, { onDelete: 'cascade', foreignKey: 'user_id' });
+BlockList.belongsTo(User, { foreignKey: 'user_id' });

@@ -10,6 +10,7 @@ const { sequelize } = require('../db/db.config');
 const User = require('../models/user.models');
 const ActivateToken = require('../models/activateToken.models');
 const ResetToken = require('../models/resetToken.models');
+const BlockList = require('../models/blockList.models');
 
 // eslint-disable-next-line object-curly-newline
 const { MODE, PORT, JWT_SECRET, JWT_EXPIRES_IN } = process.env;
@@ -310,4 +311,31 @@ exports.deactivate = catchAsync(async (req, res, next) => {
   res.status(204).send();
 });
 
-//TODO: block user, report
+exports.blockUser = catchAsync(async (req, res, next) => {
+  const { user } = req;
+  const { userId } = req.params;
+  if (user.dataValues === userId) {
+    return next(new AppError("You can't block yourself", 400));
+  }
+  const userToBlock = await User.findByPk(userId);
+
+  if (!userToBlock) {
+    return next(new AppError('There is no user with such id', 404));
+  }
+
+  const blockList = await BlockList.findOne({ user_id: user.dataValues.id });
+
+  if (!blockList) {
+    await BlockList.create({ user_id: user.dataValues.id, blocked_users: [userId] });
+  } else {
+    if (blockList.blocked_users.includes(userId)) {
+      return next(new AppError('User with such id is already blocked', 400));
+    }
+    blockList.blocked_users.push(userId);
+    await blockList.save();
+  }
+
+  res.status(201).json({ message: 'Selected user was blocked successfully' });
+});
+
+//TODO: unblock user, report

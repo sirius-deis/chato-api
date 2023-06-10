@@ -12,6 +12,7 @@ const {
   signup,
   updateMe,
   updatePassword,
+  blockUser,
 } = require('../controllers/user.controllers');
 const conversationRouter = require('./conversation.routes');
 const { isEmail, isNotEmptyWithLength } = require('../utils/validator');
@@ -49,6 +50,8 @@ userRouter.use(isLoggedIn);
 userRouter.get('/logout', logout);
 
 userRouter.get('/:userId').get(getUser);
+
+userRouter.post('/block/:userId').get(blockUser);
 
 userRouter
   .route('/update')
