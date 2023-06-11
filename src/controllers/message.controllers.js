@@ -3,6 +3,8 @@ const AppError = require('../utils/appError');
 const Message = require('../models/message.models');
 const DeleteMessage = require('../models/deletedMessage.models');
 const { Sequelize } = require('../db/db.config');
+const Participant = require('../models/participant.models');
+const Conversation = require('../models/conversation.models');
 
 const filterDeletedMessages = async (userId, ...messages) => {
   const deletedMessages = await DeleteMessage.findAll({
@@ -13,7 +15,7 @@ const filterDeletedMessages = async (userId, ...messages) => {
 
   const deletedIds = deletedMessages.map((message) => message.dataValues.message_id);
 
-  return messages.filter((message) => deletedIds.includes(message.dataValues.id));
+  return messages.filter((message) => !deletedIds.includes(message.dataValues.id));
 };
 
 exports.getMessages = catchAsync(async (req, res, next) => {
@@ -31,7 +33,7 @@ exports.getMessages = catchAsync(async (req, res, next) => {
     ),
   });
 
-  const messagesWithoutDeleted = filterDeletedMessages(user.dataValues.id, ...messages);
+  const messagesWithoutDeleted = await filterDeletedMessages(user.dataValues.id, ...messages);
 
   if (!messagesWithoutDeleted.length) {
     return next(new AppError('There are no messages for such conversation', 404));
@@ -76,6 +78,29 @@ exports.getMessage = catchAsync(async (req, res, next) => {
 exports.addMessage = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { conversationId } = req.params;
+  const { message } = req.body;
+
+  const participant = await Participant.findOne({
+    where: { user_id: user.dataValues.id },
+    include: [
+      {
+        model: Conversation,
+        where: {
+          id: conversationId,
+        },
+      },
+    ],
+  });
+
+  if (!participant) {
+    return next(new AppError('There is no conversation with such id for this user', 404));
+  }
+
+  await Message.create({
+    conversation_id: conversationId,
+    sender_id: user.dataValues.id,
+    message,
+  });
 
   res.status(201).json({ message: 'Your message was sent successfully' });
 });

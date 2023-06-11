@@ -10,7 +10,7 @@ const Message = sequelize.define('messages', {
   },
   messageType: {
     type: DataTypes.ENUM('text', 'image', 'audio', 'video', 'system'),
-    allowNull: false,
+    defaultValue: 'text',
     field: 'message_type',
   },
   message: {
