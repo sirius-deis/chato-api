@@ -30,8 +30,8 @@ userRouter.use('/:receiverId/conversations/', conversationRouter);
 userRouter.post(
   '/signup',
   isEmail(),
-  isNotEmptyWithLength('password'),
-  isNotEmptyWithLength('passwordConfirm'),
+  isNotEmptyWithLength({ field: 'password' }),
+  isNotEmptyWithLength({ field: 'passwordConfirm' }),
   signup,
 );
 
@@ -43,8 +43,8 @@ userRouter.post('/forget-password', isEmail(), validationMiddleware, forgetPassw
 
 userRouter.patch(
   '/reset-password/:resetToken',
-  isNotEmptyWithLength('password'),
-  isNotEmptyWithLength('passwordConfirm'),
+  isNotEmptyWithLength({ field: 'password' }),
+  isNotEmptyWithLength({ field: 'passwordConfirm' }),
   validationMiddleware,
   resetPassword,
 );
@@ -61,25 +61,25 @@ userRouter.post('/unblock/:userId').delete(unblockUser);
 userRouter
   .route('/update')
   .patch(
-    isNotEmptyWithLength('firstName'),
-    isNotEmptyWithLength('lastName'),
-    isNotEmptyWithLength('bio', 1, 256),
+    isNotEmptyWithLength({ field: 'firstName' }),
+    isNotEmptyWithLength({ field: 'lastName' }),
+    isNotEmptyWithLength({ field: 'bio', min: 1, max: 256 }),
     validationMiddleware,
     updateMe,
   );
 
 userRouter.post(
   '/update-password',
-  isNotEmptyWithLength('password'),
-  isNotEmptyWithLength('passwordConfirm'),
-  isNotEmptyWithLength('currentPassword'),
+  isNotEmptyWithLength({ field: 'password' }),
+  isNotEmptyWithLength({ field: 'passwordConfirm' }),
+  isNotEmptyWithLength({ field: 'currentPassword' }),
   validationMiddleware,
   updatePassword,
 );
 
-userRouter.post('/delete', isNotEmptyWithLength('password'), validationMiddleware, deleteMe);
+userRouter.post('/delete', isNotEmptyWithLength({ field: 'password' }), validationMiddleware, deleteMe);
 
-userRouter.post('/deactivate', isNotEmptyWithLength('password'), validationMiddleware, deactivate);
+userRouter.post('/deactivate', isNotEmptyWithLength({ field: 'password' }), validationMiddleware, deactivate);
 
 userRouter.post('/report/:userId', report);
 

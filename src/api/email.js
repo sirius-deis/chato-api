@@ -1,6 +1,7 @@
 const nodemailer = require('nodemailer');
 const hbs = require('nodemailer-express-handlebars');
 const path = require('path');
+const logger = require('./logger');
 
 const { NODE_ENV, EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASSWORD } = process.env;
 
@@ -38,7 +39,7 @@ const sendMail = async (to, subject, template, context) => {
     if (NODE_ENV !== 'development') {
       await transporter.sendMail(mailOptions);
     } else {
-      console.log(context.link);
+      logger.debug(context.link);
     }
   } catch (err) {
     throw new Error(err);

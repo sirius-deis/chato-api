@@ -1,6 +1,5 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../db/db.config');
-const Participant = require('./participant.models');
 
 const BlockList = sequelize.define('block_list', {
   id: {
@@ -10,12 +9,13 @@ const BlockList = sequelize.define('block_list', {
     allowNull: false,
   },
   blockedUsers: {
-    type: DataTypes.ARRAY({
+    type: DataTypes.JSON({
       type: DataTypes.INTEGER,
-      reference: {
-        model: Participant,
+      references: {
+        model: 'participants',
         key: 'id',
       },
+      allowNull: false,
     }),
     field: 'blocked_users',
   },

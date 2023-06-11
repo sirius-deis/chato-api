@@ -1,14 +1,10 @@
-const chalk = require('chalk');
+const logger = require('../api/logger');
 
 const { NODE_ENV } = process.env;
 
 module.exports = (err, req, res, next) => {
   if (NODE_ENV === 'development') {
-    console.log(
-      chalk.bgRedBright.bold('SERVER ERROR'),
-      chalk.redBright(`${err.name}\n`),
-      chalk.redBright.italic(err.stack),
-    );
+    logger.debug(`${err.name}\n${err.stack}`);
     res.status(err.statusCode || 500).json({ message: err.message });
   } else {
     res.status(err.isOperational ? err.statusCode : 500).json({

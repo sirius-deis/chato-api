@@ -19,10 +19,7 @@ const signToken = (userId) => jwt.sign({ userId }, JWT_SECRET, { expiresIn: JWT_
 
 const sendResponseWithJwtToken = (res, statusCode, data, userId) => {
   const token = signToken(userId);
-  res.cookie('token', token, {
-    expires: new Date(Date.now() + parseInt(JWT_EXPIRES_IN, 10) * 1000 * 60 * 60 * 24),
-  });
-  res.status(statusCode).json(data);
+  res.status(statusCode).json({ ...data, token });
 };
 
 const createToken = () => {
@@ -275,7 +272,6 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
 });
 
 exports.logout = catchAsync(async (req, res) => {
-  res.clearCookie('token');
   res.status(204).send();
 });
 
@@ -288,8 +284,6 @@ exports.deleteMe = catchAsync(async (req, res, next) => {
   }
 
   await user.destroy();
-
-  res.clearCookie('token');
 
   res.status(204).send();
 });
@@ -305,8 +299,6 @@ exports.deactivate = catchAsync(async (req, res, next) => {
   user.set({ isActive: false });
 
   await user.save();
-
-  res.clearCookie('token');
 
   res.status(204).send();
 });
