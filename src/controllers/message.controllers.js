@@ -108,6 +108,23 @@ exports.addMessage = catchAsync(async (req, res, next) => {
 exports.editMessage = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { conversationId, messageId } = req.params;
+  const { message } = req.body;
+
+  const foundMessage = await Message.findOne({
+    where: Sequelize.and({
+      id: messageId,
+      conversation_id: conversationId,
+      sender_id: user.dataValues.id,
+    }),
+  });
+
+  if (!foundMessage) {
+    return next(new AppError('There is no such message which you can edit', 404));
+  }
+
+  foundMessage.message = message;
+
+  await foundMessage.save();
 
   res.status(200).json({ message: 'Your message was edited successfully' });
 });

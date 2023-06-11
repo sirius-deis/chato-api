@@ -15,6 +15,6 @@ messageRouter.use(isLoggedIn);
 
 messageRouter.route('/').get(getMessages).post(addMessage);
 
-messageRouter.route('/:messageId').get(getMessage).patch(editMessage).delete(deleteMessage);
+messageRouter.route('/:messageId').get(getMessage).put(editMessage).delete(deleteMessage);
 
 module.exports = messageRouter;
