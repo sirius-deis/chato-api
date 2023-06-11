@@ -14,7 +14,13 @@ const redisDisconnect = async () => {
   await client.disconnect();
 };
 
+const getValue = async (key) => JSON.parse(await client.get(key));
+
+const setValue = async (key, value) => await client.set(key, JSON.stringify(value));
+
 module.exports = {
   redisConnect,
   redisDisconnect,
+  getValue,
+  setValue,
 };

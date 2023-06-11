@@ -6,6 +6,7 @@ const AppError = require('../utils/appError');
 const { arePasswordsTheSame } = require('../utils/validator');
 const sendMail = require('../api/email');
 const { sequelize } = require('../db/db.config');
+const { setValue } = require('../db/redis.config');
 
 const User = require('../models/user.models');
 const ActivateToken = require('../models/activateToken.models');
@@ -272,6 +273,9 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
 });
 
 exports.logout = catchAsync(async (req, res) => {
+  const { exp, token } = req;
+  const tokenExpiresIn = (new Date(exp * 1000) - new Date()) / 1000;
+  await setValue(`bl-${token}`, token, tokenExpiresIn);
   res.status(204).send();
 });
 
@@ -289,7 +293,7 @@ exports.deleteMe = catchAsync(async (req, res, next) => {
 });
 
 exports.deactivate = catchAsync(async (req, res, next) => {
-  const { user } = req;
+  const { user, exp, token } = req;
   const { password } = req.body;
 
   if (!(await user.validatePassword(password))) {
@@ -299,6 +303,9 @@ exports.deactivate = catchAsync(async (req, res, next) => {
   user.set({ isActive: false });
 
   await user.save();
+
+  const tokenExpiresIn = (new Date(exp * 1000) - new Date()) / 1000;
+  await setValue(`bl-${token}`, token, tokenExpiresIn);
 
   res.status(204).send();
 });

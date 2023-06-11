@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
+const { getValue } = require('../db/redis.config');
 
 const User = require('../models/user.models');
 
@@ -20,6 +21,16 @@ exports.isLoggedIn = catchAsync(async (req, res, next) => {
     return next(new AppError('Token verification failed', 401));
   }
 
+  if (payload.iat * 1000 < global.serverStartedAt.getTime()) {
+    return next(new AppError('Please login again', 400));
+  }
+
+  const isTokenInBlackList = await getValue(`bl-${token}`);
+
+  if (isTokenInBlackList) {
+    return next(new AppError('Token is invalid. Please login again', 400));
+  }
+
   const user = await User.scope('withPassword').findByPk(payload.userId);
 
   if (!user) {
@@ -31,6 +42,8 @@ exports.isLoggedIn = catchAsync(async (req, res, next) => {
   }
 
   req.user = user;
+  req.exp = payload.exp;
+  req.token = token;
 
   next();
 });

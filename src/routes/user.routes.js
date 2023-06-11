@@ -37,7 +37,7 @@ userRouter.post(
 
 userRouter.get('/activate/:activateToken', activate);
 
-userRouter.post('/login', isEmail(), isNotEmptyWithLength('password'), validationMiddleware, login);
+userRouter.post('/login', isEmail(), isNotEmptyWithLength({ field: 'password' }), validationMiddleware, login);
 
 userRouter.post('/forget-password', isEmail(), validationMiddleware, forgetPassword);
 

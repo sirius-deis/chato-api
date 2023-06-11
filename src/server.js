@@ -1,6 +1,7 @@
 require('dotenv').config();
 const app = require('./app');
 const { sequelize } = require('./db/db.config');
+const { redisConnect } = require('./db/redis.config');
 const logger = require('./api/logger');
 require('./associations');
 
@@ -18,14 +19,16 @@ const connect = async () => {
 };
 
 const sync = async () => {
-  await sequelize.sync({ force: true });
+  await sequelize.sync({ force: false });
   logger.info('All models were synchronized successfully.');
 };
 
 const start = async () => {
   await connect();
   await sync();
+  await redisConnect();
   server = app.listen(PORT, () => {
+    global.serverStartedAt = new Date();
     logger.info(`Server is running on port: ${PORT}`);
   });
 };

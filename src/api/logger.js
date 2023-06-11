@@ -1,7 +1,7 @@
 const { createLogger, format, addColors, transports } = require('winston');
 
 const logger = createLogger({
-  level: 'info',
+  level: 'debug',
   format: format.combine(
     format.json(),
     format.colorize(),
