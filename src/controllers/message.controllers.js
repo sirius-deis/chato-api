@@ -133,5 +133,22 @@ exports.deleteMessage = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { conversationId, messageId } = req.params;
 
+  const foundMessage = await Message.findOne({
+    where: Sequelize.and({
+      id: messageId,
+      conversation_id: conversationId,
+      sender_id: user.dataValues.id,
+    }),
+  });
+
+  if (!foundMessage) {
+    return next(new AppError('There is no such message which you can edit', 404));
+  }
+
+  await DeleteMessage.create({
+    message_id: messageId,
+    user_id: user.dataValues.id,
+  });
+
   res.status(204).send();
 });
