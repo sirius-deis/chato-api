@@ -15,7 +15,7 @@ describe('/users route', () => {
     await sequelize.close();
   });
   describe('/signup route ', () => {
-    it('should return 400 as email body values are empty', (done) => {
+    it('should return 400 as body values are empty', (done) => {
       request(app)
         .post(`${baseUrl}signup`)
         .type('json')
@@ -31,6 +31,35 @@ describe('/users route', () => {
             "Field: password can't be shorter than 4 length",
             "Field: passwordConfirm can't be shorter than 4 length",
           ]);
+        })
+        .end(done);
+    });
+    it('should return 400 as password and passwordConfirm are too short', (done) => {
+      request(app)
+        .post(`${baseUrl}signup`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .send({ email: 'test@test.com', password: 'pas', passwordConfirm: 'pas' })
+        .expect(400)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toEqual([
+            "Field: password can't be shorter than 4 length",
+            "Field: passwordConfirm can't be shorter than 4 length",
+          ]);
+        })
+        .end(done);
+    });
+    it('should return 400 as password and passwordConfirm are not the same', (done) => {
+      request(app)
+        .post(`${baseUrl}signup`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .send({ email: 'test@test.com', password: 'password', passwordConfirm: 'password1' })
+        .expect(400)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toEqual('Password are not the same. Please provide correct passwords');
         })
         .end(done);
     });
