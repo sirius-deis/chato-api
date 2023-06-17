@@ -77,15 +77,17 @@ exports.signup = catchAsync(async (req, res, next) => {
   });
 });
 
+//TODO: isBlocked, passwordChangedAt
 exports.login = catchAsync(async (req, res, next) => {
   const { email, password } = req.body;
 
   const user = await User.scope('withPassword').findOne({
     where: { email },
+    attributes: { exclude: ['createdAt', 'updatedAt', 'lastSeen'] },
   });
 
   if (!user || !(await user.validatePassword(password))) {
-    return next(new AppError('Wrong email or password', 400));
+    return next(new AppError('Wrong email or password', 401));
   }
 
   if (!user.dataValues.isActive) {
@@ -100,7 +102,7 @@ exports.login = catchAsync(async (req, res, next) => {
     {
       message: 'You were logged in successfully',
       date: {
-        user,
+        user: { ...user.dataValues, isBlocked: undefined, passwordChangedAt: undefined },
       },
     },
     user.id,
@@ -113,8 +115,8 @@ exports.activate = catchAsync(async (req, res, next) => {
     where: { token: activateToken },
   });
 
-  if (!token.dataValues.token) {
-    return next(new AppError('Token is not exist. Please check if it is correct', 400));
+  if (!token?.dataValues.token) {
+    return next(new AppError('Token does not exist. Please check if it is correct', 404));
   }
 
   const user = await User.scope('withIsActive').findByPk(token.dataValues.user_id);

@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "pretest": "ACTION=create node ./src/__tests__/config.js",
-    "test": "DB_SCHEMA=test_db NODE_ENV=test jest",
+    "test": "DB_SCHEMA=test_db NODE_ENV=test jest --runInBand --detectOpenHandles --force-exit",
     "posttest": "ACTION=drop node ./src/__tests__/config.js",
     "test:w": "jest --w",
     "coverage": "jest - --coverage",

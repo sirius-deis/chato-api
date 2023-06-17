@@ -12,8 +12,10 @@ const connection = mysql
   .promise();
 
 const createDB = () => {
-  connection.query('CREATE DATABASE IF NOT EXISTS test_db').then((_) => {
-    connection.destroy();
+  connection.query('DROP DATABASE IF EXISTS test_db').then((_) => {
+    connection.query('CREATE DATABASE IF NOT EXISTS test_db').then((_2) => {
+      connection.destroy();
+    });
   });
 };
 

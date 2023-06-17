@@ -7,5 +7,5 @@ module.exports = {
   watchPathIgnorePatterns: ['./src/__tests__/config.js'],
   testPathIgnorePatterns: ['./src/__tests__/config.js'],
   coveragePathIgnorePatterns: ['./src/__tests__/config.js'],
-  setupFiles: ['dotenv/config'],
+  setupFiles: ['dotenv/config', './src/associations.js'],
 };
