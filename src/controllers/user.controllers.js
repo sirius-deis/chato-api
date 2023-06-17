@@ -65,15 +65,15 @@ exports.signup = catchAsync(async (req, res, next) => {
     link = buildLink(req, token, 'activate');
   });
 
-  await sendMail(email, 'Activate your Chato account', 'verification', {
-    title: 'Please activate your account',
-    link,
-    email,
-  });
-
   res.status(201).json({
     message:
       'Your account was created successfully. Please check your email and confirm your account, and then you will be able to use our service',
+  });
+
+  sendMail(email, 'Activate your ChattyPal account', 'verification', {
+    title: 'Please activate your account',
+    link,
+    email,
   });
 });
 

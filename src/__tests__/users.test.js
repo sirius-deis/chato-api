@@ -1,7 +1,7 @@
 // eslint-disable-next-line node/no-unpublished-require
 const request = require('supertest');
 const app = require('../app');
-const sequelize = require('./db.config');
+const { sequelize } = require('../db/db.config');
 
 const baseUrl = '/api/v1/users/';
 
@@ -63,5 +63,21 @@ describe('/users route', () => {
         })
         .end(done);
     });
+    it('should return 201 after successful registration', (done) => {
+      request(app)
+        .post(`${baseUrl}signup`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .send({ email: 'test@test.com', password: 'password', passwordConfirm: 'password' })
+        .expect(201)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toEqual(
+            'Your account was created successfully. Please check your email and confirm your account, and then you will be able to use our service',
+          );
+        })
+        .end(done);
+    });
   });
+  describe('/login route ', () => {});
 });

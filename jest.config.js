@@ -2,10 +2,10 @@
 const { defaults } = require('jest-config');
 
 module.exports = {
-  // ...
   moduleFileExtensions: [...defaults.moduleFileExtensions, 'js', 'mjs'],
-  modulePathIgnorePatterns: ['./src/__tests__/config.js', './src/__tests__/db.config.js'],
-  watchPathIgnorePatterns: ['./src/__tests__/config.js', './src/__tests__/db.config.js'],
-  testPathIgnorePatterns: ['./src/__tests__/config.js', './src/__tests__/db.config.js'],
-  coveragePathIgnorePatterns: ['./src/__tests__/config.js', './src/__tests__/db.config.js'],
+  modulePathIgnorePatterns: ['./src/__tests__/config.js'],
+  watchPathIgnorePatterns: ['./src/__tests__/config.js'],
+  testPathIgnorePatterns: ['./src/__tests__/config.js'],
+  coveragePathIgnorePatterns: ['./src/__tests__/config.js'],
+  setupFiles: ['dotenv/config'],
 };
