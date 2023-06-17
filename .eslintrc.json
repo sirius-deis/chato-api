@@ -42,7 +42,7 @@
     "no-unused-vars": [
       "error",
       {
-        "argsIgnorePattern": "req|res|next"
+        "argsIgnorePattern": "req|res|next|_"
       }
     ]
   },

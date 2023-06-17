@@ -8,7 +8,10 @@ const sendResponseWithErrors = (errors, next) => {
 module.exports = (req, res, next) => {
   const { errors } = validationResult(req);
   if (errors.length) {
-    return sendResponseWithErrors(errors, next);
+    return sendResponseWithErrors(
+      errors.map((error) => error.msg),
+      next,
+    );
   }
   next();
 };
