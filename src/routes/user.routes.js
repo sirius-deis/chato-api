@@ -73,12 +73,12 @@ userRouter.post('/unblock/:userId').delete(unblockUser);
 userRouter
   .route('/update')
   .patch(
-    isNotEmpty({ field: 'firstName' }),
-    isNotEmpty({ field: 'lastName' }),
-    isNotEmpty({ field: 'bio' }),
-    isWithLength({ field: 'firstName' }),
-    isWithLength({ field: 'lastName' }),
-    isWithLength({ field: 'bio', min: 1, max: 256 }),
+    isNotEmpty({ field: 'firstName', isOptional: true }),
+    isNotEmpty({ field: 'lastName', isOptional: true }),
+    isNotEmpty({ field: 'bio', isOptional: true }),
+    isWithLength({ field: 'firstName', isOptional: true }),
+    isWithLength({ field: 'lastName', isOptional: true }),
+    isWithLength({ field: 'bio', isOptional: true, min: 1, max: 256 }),
     validationMiddleware,
     updateMe,
   );

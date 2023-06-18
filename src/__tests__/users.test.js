@@ -10,12 +10,21 @@ const baseUrl = '/api/v1/users/';
 
 describe('/users route', () => {
   let token;
+  let token2;
   beforeAll(async () => {
     await sequelize.authenticate();
     await sequelize.sync();
     await redisConnect();
-    await User.create({ email: 'test2@test.com', password: 'password' });
-    await User.create({ email: 'test3@test.com', password: 'password', isActive: true, isBlocked: true });
+    await User.create({
+      email: 'test2@test.com',
+      password: 'password',
+      firstName: 'test2',
+      lastName: 'test2',
+      bio: 'test2',
+      isActive: true,
+    });
+    await User.create({ email: 'test3@test.com', password: 'password' });
+    await User.create({ email: 'test4@test.com', password: 'password', isActive: true, isBlocked: true });
   });
   afterAll(async () => {
     await sequelize.close();
@@ -179,7 +188,7 @@ describe('/users route', () => {
         .post(`${baseUrl}login`)
         .type('json')
         .set('Accept', 'application/json')
-        .send({ email: 'test2@test.com', password: 'password' })
+        .send({ email: 'test3@test.com', password: 'password' })
         .expect(403)
         .expect('Content-Type', /json/)
         .expect((res) => {
@@ -194,7 +203,7 @@ describe('/users route', () => {
         .post(`${baseUrl}login`)
         .type('json')
         .set('Accept', 'application/json')
-        .send({ email: 'test3@test.com', password: 'password' })
+        .send({ email: 'test4@test.com', password: 'password' })
         .expect(401)
         .expect('Content-Type', /json/)
         .expect((res) => {
@@ -218,6 +227,108 @@ describe('/users route', () => {
           expect(res.body.data.user.passwordChangedAt).toBeUndefined();
           // eslint-disable-next-line prefer-destructuring
           token = res.body.token;
+        })
+        .end(done);
+    });
+    it('should return 200 and login user', (done) => {
+      request(app)
+        .post(`${baseUrl}login`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .send({ email: 'test2@test.com', password: 'password' })
+        .expect(200)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('You were logged in successfully');
+          expect(res.body.data.user.email).toBe('test2@test.com');
+          expect(res.body.data.user.password).toBeUndefined();
+          expect(res.body.data.user.isBlocked).toBeUndefined();
+          expect(res.body.data.user.passwordChangedAt).toBeUndefined();
+          token2 = res.body.token;
+        })
+        .end(done);
+    });
+  });
+  describe('/update route', () => {
+    it('should return 401 as there is no token', (done) => {
+      request(app)
+        .patch(`${baseUrl}update`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .send({})
+        .expect(401)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('Sign in before accessing this route');
+        })
+        .end(done);
+    });
+    it('should return 400 as body value are too short', (done) => {
+      request(app)
+        .patch(`${baseUrl}update`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          firstName: 'f',
+          lastName: 'l',
+          bio: ':)',
+        })
+        .expect(400)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toEqual([
+            "Field: firstName can't be shorter than 4 length",
+            "Field: lastName can't be shorter than 4 length",
+          ]);
+        })
+        .end(done);
+    });
+    it('should return 400 as there were no field provided for update', (done) => {
+      request(app)
+        .patch(`${baseUrl}update`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token}`)
+        .send({})
+        .expect(400)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toEqual('Please provide some information to change');
+        })
+        .end(done);
+    });
+    it('should return 200 and update info', (done) => {
+      request(app)
+        .patch(`${baseUrl}update`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          firstName: 'test',
+          lastName: 'test',
+          bio: 'test',
+        })
+        .expect(200)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toEqual('Your data was updated successfully');
+        })
+        .end(done);
+    });
+    it('should return 200 and update info', (done) => {
+      request(app)
+        .patch(`${baseUrl}update`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token2}`)
+        .send({
+          bio: ':)',
+        })
+        .expect(200)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toEqual('Your data was updated successfully');
         })
         .end(done);
     });
@@ -283,7 +394,7 @@ describe('/users route', () => {
     });
     it('should return 200 and return user info for current user', (done) => {
       request(app)
-        .get(`${baseUrl}3`)
+        .get(`${baseUrl}4`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token}`)
@@ -292,12 +403,12 @@ describe('/users route', () => {
         .expect('Content-Type', /json/)
         .expect((res) => {
           expect(res.body.message).toBe('Data was retrieved successfully');
-          expect(res.body.data.user.id).toBe(3);
+          expect(res.body.data.user.id).toBe(4);
           expect(res.body.data.user.phone).toBeNull();
           expect(res.body.data.user.email).toBe('test@test.com');
-          expect(res.body.data.user.firstName).toBeNull();
-          expect(res.body.data.user.lastName).toBeNull();
-          expect(res.body.data.user.bio).toBeNull();
+          expect(res.body.data.user.firstName).toBe('test');
+          expect(res.body.data.user.lastName).toBe('test');
+          expect(res.body.data.user.bio).toBe('test');
         })
         .end(done);
     });
@@ -329,9 +440,9 @@ describe('/users route', () => {
           expect(res.body.data.user.id).toBe(1);
           expect(res.body.data.user.phone).toBeUndefined();
           expect(res.body.data.user.email).toBeUndefined();
-          expect(res.body.data.user.firstName).toBeNull();
+          expect(res.body.data.user.firstName).toBe('test2');
           expect(res.body.data.user.lastName).toBeUndefined();
-          expect(res.body.data.user.bio).toBeNull();
+          expect(res.body.data.user.bio).toBe(':)');
         })
         .end(done);
     });
