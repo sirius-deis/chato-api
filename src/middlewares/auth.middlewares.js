@@ -15,10 +15,12 @@ exports.isLoggedIn = catchAsync(async (req, res, next) => {
     return next(new AppError('Sign in before accessing this route', 401));
   }
 
-  const payload = jwt.verify(token, JWT_SECRET);
+  let payload;
 
-  if (!payload) {
-    return next(new AppError('Token verification failed', 401));
+  try {
+    payload = jwt.verify(token, JWT_SECRET);
+  } catch (error) {
+    return next(new AppError('Token verification failed. Token is malformed', 401));
   }
 
   if (payload.iat * 1000 < global.serverStartedAt.getTime()) {

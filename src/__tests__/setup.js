@@ -1,0 +1,1 @@
+global.serverStartedAt = new Date();

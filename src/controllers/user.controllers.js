@@ -140,17 +140,17 @@ exports.getUser = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { userId } = req.params;
 
-  if (user.dataValues.id === userId) {
+  if (user.dataValues.id.toString() === userId) {
     return res.status(200).json({
       message: 'Data was retrieved successfully',
       data: {
         user: {
-          id: user.id,
-          phone: user.phone,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          bio: user.bio,
+          id: user.dataValues.id,
+          phone: user.dataValues.phone,
+          email: user.dataValues.email,
+          firstName: user.dataValues.firstName,
+          lastName: user.dataValues.lastName,
+          bio: user.dataValues.bio,
         },
       },
     });
@@ -165,10 +165,9 @@ exports.getUser = catchAsync(async (req, res, next) => {
     message: 'Data was retrieved successfully',
     data: {
       user: {
-        id: retrievedUser.id,
-        email: retrievedUser.email,
-        firstName: retrievedUser.firstName,
-        bio: retrievedUser.bio,
+        id: retrievedUser.dataValues.id,
+        firstName: retrievedUser.dataValues.firstName,
+        bio: retrievedUser.dataValues.bio,
       },
     },
   });

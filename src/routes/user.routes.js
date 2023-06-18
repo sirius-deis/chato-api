@@ -65,7 +65,7 @@ userRouter.use(isLoggedIn);
 
 userRouter.get('/logout', logout);
 
-userRouter.get('/:userId').get(getUser);
+userRouter.get('/:userId', getUser);
 
 userRouter.post('/block/:userId').post(blockUser);
 userRouter.post('/unblock/:userId').delete(unblockUser);
