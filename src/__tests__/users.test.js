@@ -4,6 +4,7 @@ const app = require('../app');
 const { sequelize } = require('../db/db.config');
 const { redisConnect, redisDisconnect } = require('../db/redis.config');
 const ActivateToken = require('../models/activateToken.models');
+const ResetToken = require('../models/resetToken.models');
 const User = require('../models/user.models');
 
 const baseUrl = '/api/v1/users/';
@@ -101,6 +102,7 @@ describe('/users route', () => {
       request(app)
         .get(`${baseUrl}activate/1`)
         .type('json')
+        .set('Accept', 'application/json')
         .send({})
         .expect(404)
         .expect('Content-Type', /json/)
@@ -116,6 +118,7 @@ describe('/users route', () => {
           request(app)
             .get(`${baseUrl}activate/${activateToken.dataValues.token}`)
             .type('json')
+            .set('Accept', 'application/json')
             .send({})
             .expect(200)
             .expect('Content-Type', /json/)
@@ -406,6 +409,7 @@ describe('/users route', () => {
           expect(res.body.data.user.id).toBe(4);
           expect(res.body.data.user.phone).toBeNull();
           expect(res.body.data.user.email).toBe('test@test.com');
+          expect(res.body.data.user.password).toBeUndefined();
           expect(res.body.data.user.firstName).toBe('test');
           expect(res.body.data.user.lastName).toBe('test');
           expect(res.body.data.user.bio).toBe('test');
@@ -440,6 +444,7 @@ describe('/users route', () => {
           expect(res.body.data.user.id).toBe(1);
           expect(res.body.data.user.phone).toBeUndefined();
           expect(res.body.data.user.email).toBeUndefined();
+          expect(res.body.data.user.password).toBeUndefined();
           expect(res.body.data.user.firstName).toBe('test2');
           expect(res.body.data.user.lastName).toBeUndefined();
           expect(res.body.data.user.bio).toBe(':)');
@@ -603,7 +608,7 @@ describe('/users route', () => {
         .expect(404)
         .expect('Content-Type', /json/)
         .expect((res) => {
-          expect(res.body.message).toEqual('There is not user with such email');
+          expect(res.body.message).toBe('There is not user with such email');
         })
         .end(done);
     });
@@ -618,11 +623,126 @@ describe('/users route', () => {
         .expect(200)
         .expect('Content-Type', /json/)
         .expect((res) => {
-          expect(res.body.message).toEqual(
+          expect(res.body.message).toBe(
             'Reset token was sent to your email. Check it and follow instructions inside it',
           );
         })
         .end(done);
+    });
+  });
+  describe('/reset-password route', () => {
+    it('should return 400 as body values are empty', (done) => {
+      request(app)
+        .patch(`${baseUrl}reset-password/1`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .send({})
+        .expect(400)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toEqual([
+            "Field: password can't be empty",
+            "Field: passwordConfirm can't be empty",
+            "Field: password can't be shorter than 4 length",
+            "Field: passwordConfirm can't be shorter than 4 length",
+          ]);
+        })
+        .end(done);
+    });
+    it('should return 400 as body values are too short', (done) => {
+      request(app)
+        .patch(`${baseUrl}reset-password/1`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .send({
+          password: 'pas',
+          passwordConfirm: 'pas',
+        })
+        .expect(400)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toEqual([
+            "Field: password can't be shorter than 4 length",
+            "Field: passwordConfirm can't be shorter than 4 length",
+          ]);
+        })
+        .end(done);
+    });
+    it('should return 404 as token is invalid', (done) => {
+      request(app)
+        .patch(`${baseUrl}reset-password/1`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .send({
+          password: 'password',
+          passwordConfirm: 'password',
+        })
+        .expect(404)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('Token is not exist. Please check if it is correct');
+        })
+        .end(done);
+    });
+    it('should return 400 as password is the same as previous one', (done) => {
+      User.findOne({ where: { email: 'test2@test.com' } })
+        .then((user) => ResetToken.findOne({ where: { user_id: user.dataValues.id } }))
+        .then((resetToken) => {
+          request(app)
+            .patch(`${baseUrl}reset-password/${resetToken.dataValues.token}`)
+            .type('json')
+            .set('Accept', 'application/json')
+            .send({
+              password: 'password',
+              passwordConfirm: 'password',
+            })
+            .expect(400)
+            .expect('Content-Type', /json/)
+            .expect((res) => {
+              expect(res.body.message).toBe("New password can't be the same as previous");
+            })
+            .end(done);
+        });
+    });
+    it('should return 400 as passwords are not the same', (done) => {
+      User.findOne({ where: { email: 'test2@test.com' } })
+        .then((user) => ResetToken.findOne({ where: { user_id: user.dataValues.id } }))
+        .then((resetToken) => {
+          request(app)
+            .patch(`${baseUrl}reset-password/${resetToken.dataValues.token}`)
+            .type('json')
+            .set('Accept', 'application/json')
+            .send({
+              password: 'password123',
+              passwordConfirm: 'password1',
+            })
+            .expect(400)
+            .expect('Content-Type', /json/)
+            .expect((res) => {
+              expect(res.body.message).toBe('Passwords are different');
+            })
+            .end(done);
+        });
+    });
+    it('should return 200 and change a password', (done) => {
+      User.findOne({ where: { email: 'test2@test.com' } })
+        .then((user) => ResetToken.findOne({ where: { user_id: user.dataValues.id } }))
+        .then((resetToken) => {
+          request(app)
+            .patch(`${baseUrl}reset-password/${resetToken.dataValues.token}`)
+            .type('json')
+            .set('Accept', 'application/json')
+            .send({
+              password: 'password123',
+              passwordConfirm: 'password123',
+            })
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .expect((res) => {
+              expect(res.body.message).toBe('You password was successfully restored');
+            })
+            .end(done);
+        });
     });
   });
 });

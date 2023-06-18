@@ -233,7 +233,7 @@ exports.forgetPassword = catchAsync(async (req, res, next) => {
   }
 
   const token = createToken();
-  await ResetToken.create({ token, userId: user.id });
+  await ResetToken.create({ token, user_id: user.dataValues.id });
 
   const link = buildLink(req, token, 'reset-password');
   await sendMail(user.email, 'Reset password', 'reset', { title: 'Reset your password', link });
@@ -249,13 +249,17 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
   const token = await ResetToken.findOne({ where: { token: resetToken } });
 
   if (!token) {
-    return next(new AppError('Token is not exist. Please check if it is correct', 400));
+    return next(new AppError('Token is not exist. Please check if it is correct', 404));
   }
 
-  const user = await User.findByPk(token.userId);
+  const user = await User.scope('withPassword').findByPk(token.dataValues.user_id);
 
   if (!user) {
-    return next(new AppError('Token is invalid. Please try again', 400));
+    return next(new AppError('There is no user for such token', 400));
+  }
+
+  if (await user.validatePassword(password)) {
+    return next(new AppError("New password can't be the same as previous", 400));
   }
 
   if (!arePasswordsTheSame(password, passwordConfirm)) {
