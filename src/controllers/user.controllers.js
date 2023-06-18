@@ -199,7 +199,7 @@ exports.updatePassword = catchAsync(async (req, res, next) => {
   const { password, passwordConfirm, currentPassword } = req.body;
 
   if (!(await user.validatePassword(currentPassword))) {
-    return next(new AppError('Incorrect password', 403));
+    return next(new AppError('Incorrect password', 401));
   }
 
   if (password === currentPassword) {
@@ -207,7 +207,7 @@ exports.updatePassword = catchAsync(async (req, res, next) => {
   }
 
   if (!arePasswordsTheSame(password, passwordConfirm)) {
-    return next(new AppError('Password are different', 400));
+    return next(new AppError('Passwords are different', 400));
   }
 
   user.password = password;

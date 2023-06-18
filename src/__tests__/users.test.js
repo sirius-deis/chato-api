@@ -447,4 +447,135 @@ describe('/users route', () => {
         .end(done);
     });
   });
+  describe('/update-password route', () => {
+    it('should return 401 as there is not token', (done) => {
+      request(app)
+        .get(`${baseUrl}update-password`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .send({})
+        .expect(401)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('Sign in before accessing this route');
+        })
+        .end(done);
+    });
+    it('should return 400 as body values are incorrect', (done) => {
+      request(app)
+        .patch(`${baseUrl}update-password`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token}`)
+        .send({})
+        .expect(400)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toEqual([
+            "Field: password can't be empty",
+            "Field: passwordConfirm can't be empty",
+            "Field: currentPassword can't be empty",
+            "Field: password can't be shorter than 4 length",
+            "Field: passwordConfirm can't be shorter than 4 length",
+            "Field: currentPassword can't be shorter than 4 length",
+          ]);
+        })
+        .end(done);
+    });
+    it('should return 400 as body values are too short', (done) => {
+      request(app)
+        .patch(`${baseUrl}update-password`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          password: 'pas',
+          passwordConfirm: 'pas',
+          currentPassword: 'pas',
+        })
+        .expect(400)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toEqual([
+            "Field: password can't be shorter than 4 length",
+            "Field: passwordConfirm can't be shorter than 4 length",
+            "Field: currentPassword can't be shorter than 4 length",
+          ]);
+        })
+        .end(done);
+    });
+    it('should return 401 as current password is incorrect', (done) => {
+      request(app)
+        .patch(`${baseUrl}update-password`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          password: 'password123',
+          passwordConfirm: 'password123',
+          currentPassword: 'password1',
+        })
+        .expect(401)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toEqual('Incorrect password');
+        })
+        .end(done);
+    });
+    it('should return 400 as current password and a new one are the same', (done) => {
+      request(app)
+        .patch(`${baseUrl}update-password`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          password: 'password',
+          passwordConfirm: 'password',
+          currentPassword: 'password',
+        })
+        .expect(400)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toEqual("New password can't be the same as the current one");
+        })
+        .end(done);
+    });
+    it('should return 400 as password and confirm password are not the same', (done) => {
+      request(app)
+        .patch(`${baseUrl}update-password`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          password: 'password123',
+          passwordConfirm: 'password1',
+          currentPassword: 'password',
+        })
+        .expect(400)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toEqual('Passwords are different');
+        })
+        .end(done);
+    });
+    it('should return 200 and change password', (done) => {
+      request(app)
+        .patch(`${baseUrl}update-password`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          password: 'password123',
+          passwordConfirm: 'password123',
+          currentPassword: 'password',
+        })
+        .expect(200)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toEqual('You password was successfully updated');
+          expect(res.body.token).not.toBeUndefined();
+        })
+        .end(done);
+    });
+  });
 });

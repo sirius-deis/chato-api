@@ -83,7 +83,7 @@ userRouter
     updateMe,
   );
 
-userRouter.post(
+userRouter.patch(
   '/update-password',
   isNotEmpty({ field: 'password' }),
   isNotEmpty({ field: 'passwordConfirm' }),
