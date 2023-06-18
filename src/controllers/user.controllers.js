@@ -77,7 +77,6 @@ exports.signup = catchAsync(async (req, res, next) => {
   });
 });
 
-//TODO: isBlocked, passwordChangedAt
 exports.login = catchAsync(async (req, res, next) => {
   const { email, password } = req.body;
 
@@ -94,6 +93,10 @@ exports.login = catchAsync(async (req, res, next) => {
     return next(new AppError('Your account is deactivated. Please reactivate your account and then try again', 403));
   }
 
+  if (user.dataValues.isBlocked) {
+    return next(new AppError('Your account is blocked', 401));
+  }
+
   user.password = undefined;
 
   sendResponseWithJwtToken(
@@ -101,7 +104,7 @@ exports.login = catchAsync(async (req, res, next) => {
     200,
     {
       message: 'You were logged in successfully',
-      date: {
+      data: {
         user: { ...user.dataValues, isBlocked: undefined, passwordChangedAt: undefined },
       },
     },

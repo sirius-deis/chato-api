@@ -8,9 +8,12 @@ const User = require('../models/user.models');
 const baseUrl = '/api/v1/users/';
 
 describe('/users route', () => {
+  let token;
   beforeAll(async () => {
     await sequelize.authenticate();
     await sequelize.sync();
+    await User.create({ email: 'test2@test.com', password: 'password' });
+    await User.create({ email: 'test3@test.com', password: 'password', isActive: true, isBlocked: true });
   });
   afterAll(async () => {
     await sequelize.close();
@@ -71,21 +74,6 @@ describe('/users route', () => {
         .type('json')
         .set('Accept', 'application/json')
         .send({ email: 'test@test.com', password: 'password', passwordConfirm: 'password' })
-        .expect(201)
-        .expect('Content-Type', /json/)
-        .expect((res) => {
-          expect(res.body.message).toBe(
-            'Your account was created successfully. Please check your email and confirm your account, and then you will be able to use our service',
-          );
-        })
-        .end(done);
-    });
-    it('should return 201 after successful registration', (done) => {
-      request(app)
-        .post(`${baseUrl}signup`)
-        .type('json')
-        .set('Accept', 'application/json')
-        .send({ email: 'test2@test.com', password: 'password', passwordConfirm: 'password' })
         .expect(201)
         .expect('Content-Type', /json/)
         .expect((res) => {
@@ -198,7 +186,20 @@ describe('/users route', () => {
         })
         .end(done);
     });
-    it('should return 200 and login', (done) => {
+    it('should return 403 as account is blocked', (done) => {
+      request(app)
+        .post(`${baseUrl}login`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .send({ email: 'test3@test.com', password: 'password' })
+        .expect(401)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('Your account is blocked');
+        })
+        .end(done);
+    });
+    it('should return 200 and login user', (done) => {
       request(app)
         .post(`${baseUrl}login`)
         .type('json')
@@ -208,10 +209,12 @@ describe('/users route', () => {
         .expect('Content-Type', /json/)
         .expect((res) => {
           expect(res.body.message).toBe('You were logged in successfully');
-          expect(res.body.date.user.email).toBe('test@test.com');
-          expect(res.body.date.user.password).toBeUndefined();
-          expect(res.body.date.user.isBlocked).toBeUndefined();
-          expect(res.body.date.user.passwordChangedAt).toBeUndefined();
+          expect(res.body.data.user.email).toBe('test@test.com');
+          expect(res.body.data.user.password).toBeUndefined();
+          expect(res.body.data.user.isBlocked).toBeUndefined();
+          expect(res.body.data.user.passwordChangedAt).toBeUndefined();
+          // eslint-disable-next-line prefer-destructuring
+          token = res.body.token;
         })
         .end(done);
     });
