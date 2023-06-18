@@ -578,4 +578,51 @@ describe('/users route', () => {
         .end(done);
     });
   });
+  describe('/forget-password route', () => {
+    it('should return 400 as there is not field with email', (done) => {
+      request(app)
+        .post(`${baseUrl}forget-password`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .send({})
+        .expect(400)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toEqual(['Provide valid email']);
+        })
+        .end(done);
+    });
+    it('should return 404 as there is not such email', (done) => {
+      request(app)
+        .post(`${baseUrl}forget-password`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .send({
+          email: 'test100@test.com',
+        })
+        .expect(404)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toEqual('There is not user with such email');
+        })
+        .end(done);
+    });
+    it('should return 200 and send email', (done) => {
+      request(app)
+        .post(`${baseUrl}forget-password`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .send({
+          email: 'test2@test.com',
+        })
+        .expect(200)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toEqual(
+            'Reset token was sent to your email. Check it and follow instructions inside it',
+          );
+        })
+        .end(done);
+    });
+  });
 });

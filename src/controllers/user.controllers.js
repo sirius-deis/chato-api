@@ -229,7 +229,7 @@ exports.forgetPassword = catchAsync(async (req, res, next) => {
   const user = await User.findOne({ where: { email } });
 
   if (!user) {
-    return next(new AppError('There is not user with such email', 400));
+    return next(new AppError('There is not user with such email', 404));
   }
 
   const token = createToken();
