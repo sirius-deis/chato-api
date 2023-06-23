@@ -241,11 +241,11 @@ exports.forgetPassword = catchAsync(async (req, res, next) => {
   await ResetToken.create({ token, user_id: user.dataValues.id });
 
   const link = buildLink(req, token, 'reset-password');
-  await sendMail(user.email, 'Reset password', 'reset', { title: 'Reset your password', link });
 
   res.status(200).json({
     message: 'Reset token was sent to your email. Check it and follow instructions inside it',
   });
+  sendMail(user.email, 'Reset password', 'reset', { title: 'Reset your password', link });
 });
 
 exports.resetPassword = catchAsync(async (req, res, next) => {
@@ -310,7 +310,7 @@ exports.deactivate = catchAsync(async (req, res, next) => {
   const { password } = req.body;
 
   if (!(await user.validatePassword(password))) {
-    return next(new AppError('Incorrect password', 400));
+    return next(new AppError('Incorrect password', 401));
   }
 
   user.set({ isActive: false });

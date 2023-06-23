@@ -19,7 +19,13 @@ const handlebarOptions = {
     extname: '.handlebars',
     partialsDir: path.resolve(__dirname, '../views', 'emails'),
     layoutsDir: path.resolve(__dirname, '../views', 'emails', 'layouts'),
-    defaultLayout: path.resolve(__dirname, '../views', 'emails', 'layouts', 'root.emails.handlebars'),
+    defaultLayout: path.resolve(
+      __dirname,
+      '../views',
+      'emails',
+      'layouts',
+      'root.emails.handlebars',
+    ),
   },
   viewPath: path.resolve(__dirname, '../views/emails/'),
   extName: '.handlebars',
@@ -37,7 +43,7 @@ const sendMail = async (to, subject, template, context) => {
   };
   try {
     if (NODE_ENV !== 'development') {
-      await transporter.sendMail(mailOptions);
+      // await transporter.sendMail(mailOptions);
     } else {
       logger.debug(context.link);
     }

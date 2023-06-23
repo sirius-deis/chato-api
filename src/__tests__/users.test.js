@@ -822,4 +822,80 @@ describe('/users route', () => {
         .end(done);
     });
   });
+  describe('/deactivate route', () => {
+    it('should return 401 as there is no token provided', (done) => {
+      request(app)
+        .post(`${baseUrl}deactivate`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .send({})
+        .expect(401)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('Sign in before accessing this route');
+        })
+        .end(done);
+    });
+    it('should return 400 as field values are invalid', (done) => {
+      request(app)
+        .post(`${baseUrl}deactivate`)
+        .type('json')
+        .set('Authorization', `Bearer ${token6}`)
+        .set('Accept', 'application/json')
+        .send({})
+        .expect(400)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toEqual([
+            "Field: password can't be empty",
+            "Field: password can't be shorter than 4 length",
+          ]);
+        })
+        .end(done);
+    });
+    it('should return 400 as field is too short', (done) => {
+      request(app)
+        .post(`${baseUrl}deactivate`)
+        .type('json')
+        .set('Authorization', `Bearer ${token6}`)
+        .set('Accept', 'application/json')
+        .send({
+          password: 'pas',
+        })
+        .expect(400)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toEqual(["Field: password can't be shorter than 4 length"]);
+        })
+        .end(done);
+    });
+    it('should return 401 as password is incorrect', (done) => {
+      request(app)
+        .post(`${baseUrl}deactivate`)
+        .type('json')
+        .set('Authorization', `Bearer ${token6}`)
+        .set('Accept', 'application/json')
+        .send({
+          password: 'password1',
+        })
+        .expect(401)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toEqual('Incorrect password');
+        })
+        .end(done);
+    });
+    it('should return 204 and deactivate account', (done) => {
+      request(app)
+        .post(`${baseUrl}deactivate`)
+        .type('json')
+        .set('Authorization', `Bearer ${token6}`)
+        .set('Accept', 'application/json')
+        .send({
+          password: 'password',
+        })
+        .expect(204)
+        .end(done);
+    });
+  });
 });
