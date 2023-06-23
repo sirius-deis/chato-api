@@ -65,10 +65,10 @@ userRouter.use(isLoggedIn);
 
 userRouter.get('/logout', logout);
 
-userRouter.get('/:userId', getUser);
+userRouter.post('/block/:userId', blockUser);
+userRouter.delete('/unblock/:userId', unblockUser);
 
-userRouter.post('/block/:userId').post(blockUser);
-userRouter.post('/unblock/:userId').delete(unblockUser);
+userRouter.get('/:userId', getUser);
 
 userRouter
   .route('/update')
@@ -113,7 +113,7 @@ userRouter.post(
 
 userRouter.post('/report/:userId', report);
 
-userRouter.post('/block-account/:userId').post(inAuthorized('admin', 'moderator'), blockAccount);
-userRouter.post('/unblock-account/:userId').delete(inAuthorized('admin'), unblockAccount);
+userRouter.post('/block-account/:userId', inAuthorized('admin', 'moderator'), blockAccount);
+userRouter.delete('/unblock-account/:userId', inAuthorized('admin'), unblockAccount);
 
 module.exports = userRouter;

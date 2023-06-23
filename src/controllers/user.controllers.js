@@ -326,7 +326,7 @@ exports.deactivate = catchAsync(async (req, res, next) => {
 exports.blockUser = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { userId } = req.params;
-  if (user.dataValues.id === userId) {
+  if (user.dataValues.id.toString() === userId) {
     return next(new AppError("You can't block yourself", 400));
   }
   const userToBlock = await User.findByPk(userId);
@@ -335,19 +335,22 @@ exports.blockUser = catchAsync(async (req, res, next) => {
     return next(new AppError('There is no user with such id', 404));
   }
 
-  const blockList = await BlockList.findOne({ user_id: user.dataValues.id });
+  const blockList = await BlockList.findOne({ where: { user_id: user.dataValues.id } });
 
   if (!blockList) {
-    await BlockList.create({ user_id: user.dataValues.id, blocked_users: [userId] });
+    await BlockList.create({
+      user_id: user.dataValues.id,
+      blockedUsers: [userId],
+    });
   } else {
-    if (blockList.blocked_users.includes(userId)) {
+    if (blockList.dataValues.blockedUsers.includes(userId)) {
       return next(new AppError('User with such id is already blocked', 400));
     }
-    blockList.blocked_users.push(userId);
+    blockList.dataValues.blockedUsers.push(userId);
     await blockList.save();
   }
 
-  res.status(201).json({ message: 'Selected user was blocked successfully' });
+  res.status(200).json({ message: 'Selected user was blocked successfully' });
 });
 
 exports.unblockUser = catchAsync(async (req, res, next) => {

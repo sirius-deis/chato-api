@@ -14,6 +14,7 @@ describe('/users route', () => {
   let token2;
   let token5;
   let token6;
+  let token7;
   beforeAll(async () => {
     await sequelize.authenticate();
     await sequelize.sync();
@@ -40,6 +41,11 @@ describe('/users route', () => {
     });
     await User.create({
       email: 'test6@test.com',
+      password: 'password',
+      isActive: true,
+    });
+    await User.create({
+      email: 'test7@test.com',
       password: 'password',
       isActive: true,
     });
@@ -290,6 +296,18 @@ describe('/users route', () => {
         })
         .end(done);
     });
+    it('should return 200 and login user', (done) => {
+      request(app)
+        .post(`${baseUrl}login`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .send({ email: 'test7@test.com', password: 'password' })
+        .expect(200)
+        .expect((res) => {
+          token7 = res.body.token;
+        })
+        .end(done);
+    });
   });
   describe('/update route', () => {
     it('should return 401 as there is no token', (done) => {
@@ -436,7 +454,7 @@ describe('/users route', () => {
     });
     it('should return 200 and return user info for current user', (done) => {
       request(app)
-        .get(`${baseUrl}6`)
+        .get(`${baseUrl}7`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token}`)
@@ -445,7 +463,7 @@ describe('/users route', () => {
         .expect('Content-Type', /json/)
         .expect((res) => {
           expect(res.body.message).toBe('Data was retrieved successfully');
-          expect(res.body.data.user.id).toBe(6);
+          expect(res.body.data.user.id).toBe(7);
           expect(res.body.data.user.phone).toBeNull();
           expect(res.body.data.user.email).toBe('test@test.com');
           expect(res.body.data.user.password).toBeUndefined();
@@ -898,4 +916,90 @@ describe('/users route', () => {
         .end(done);
     });
   });
+  describe('/block route', () => {
+    it('should return 401 as there is no token', (done) => {
+      request(app)
+        .post(`${baseUrl}block/1`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .send({})
+        .expect(401)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('Sign in before accessing this route');
+        })
+        .end(done);
+    });
+    it('should return 400 as user is trying to block himself', (done) => {
+      request(app)
+        .post(`${baseUrl}block/6`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token7}`)
+        .send({})
+        .expect(400)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe("You can't block yourself");
+        })
+        .end(done);
+    });
+    it('should return 404 as there is no such user', (done) => {
+      request(app)
+        .post(`${baseUrl}block/100`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token7}`)
+        .send({})
+        .expect(404)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('There is no user with such id');
+        })
+        .end(done);
+    });
+    it('should return 200 and block user', (done) => {
+      request(app)
+        .post(`${baseUrl}block/1`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token7}`)
+        .send({})
+        .expect(200)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('Selected user was blocked successfully');
+        })
+        .end(done);
+    });
+    it('should return 400 trying to block a blocked user', (done) => {
+      request(app)
+        .post(`${baseUrl}block/1`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token7}`)
+        .send({})
+        .expect(400)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('User with such id is already blocked');
+        })
+        .end(done);
+    });
+    it('should return 200 and block a second user user', (done) => {
+      request(app)
+        .post(`${baseUrl}block/2`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token7}`)
+        .send({})
+        .expect(200)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('Selected user was blocked successfully');
+        })
+        .end(done);
+    });
+  });
+  describe.skip('/delete route', () => {});
 });

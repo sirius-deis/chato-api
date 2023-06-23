@@ -12,7 +12,7 @@ const Conversation = sequelize.define('conversations', {
     type: DataTypes.STRING(40),
   },
   type: {
-    type: DataTypes.ENUM('private', 'groupe'),
+    type: DataTypes.ENUM('private', 'groupe', 'channel'),
     allowNull: false,
   },
 });
