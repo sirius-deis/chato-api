@@ -39,8 +39,17 @@ exports.isLoggedIn = catchAsync(async (req, res, next) => {
     return next(new AppError("User wasn't found. Please try to login again", 404));
   }
 
+  if (payload.iat * 1000 < user.dataValues.passwordChangedAt) {
+    return next(new AppError('Password was changed. Please login again', 401));
+  }
+
   if (!user.dataValues.isActive) {
-    return next(new AppError('Your account is deactivated. Please reactivate your account and then try again', 403));
+    return next(
+      new AppError(
+        'Your account is deactivated. Please reactivate your account and then try again',
+        403,
+      ),
+    );
   }
 
   req.user = user;

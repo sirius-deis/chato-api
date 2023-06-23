@@ -90,7 +90,12 @@ exports.login = catchAsync(async (req, res, next) => {
   }
 
   if (!user.dataValues.isActive) {
-    return next(new AppError('Your account is deactivated. Please reactivate your account and then try again', 403));
+    return next(
+      new AppError(
+        'Your account is deactivated. Please reactivate your account and then try again',
+        403,
+      ),
+    );
   }
 
   if (user.dataValues.isBlocked) {

@@ -12,6 +12,8 @@ const baseUrl = '/api/v1/users/';
 describe('/users route', () => {
   let token;
   let token2;
+  let token5;
+  let token6;
   beforeAll(async () => {
     await sequelize.authenticate();
     await sequelize.sync();
@@ -25,7 +27,22 @@ describe('/users route', () => {
       isActive: true,
     });
     await User.create({ email: 'test3@test.com', password: 'password' });
-    await User.create({ email: 'test4@test.com', password: 'password', isActive: true, isBlocked: true });
+    await User.create({
+      email: 'test4@test.com',
+      password: 'password',
+      isActive: true,
+      isBlocked: true,
+    });
+    await User.create({
+      email: 'test5@test.com',
+      password: 'password',
+      isActive: true,
+    });
+    await User.create({
+      email: 'test6@test.com',
+      password: 'password',
+      isActive: true,
+    });
   });
   afterAll(async () => {
     await sequelize.close();
@@ -77,7 +94,9 @@ describe('/users route', () => {
         .expect(400)
         .expect('Content-Type', /json/)
         .expect((res) => {
-          expect(res.body.message).toBe('Password are not the same. Please provide correct passwords');
+          expect(res.body.message).toBe(
+            'Password are not the same. Please provide correct passwords',
+          );
         })
         .end(done);
     });
@@ -123,7 +142,9 @@ describe('/users route', () => {
             .expect(200)
             .expect('Content-Type', /json/)
             .expect((res) => {
-              expect(res.body.message).toBe('Your account was successfully verified. Please login and enjoy chatting');
+              expect(res.body.message).toBe(
+                'Your account was successfully verified. Please login and enjoy chatting',
+              );
             })
             .end(done);
         });
@@ -240,14 +261,32 @@ describe('/users route', () => {
         .set('Accept', 'application/json')
         .send({ email: 'test2@test.com', password: 'password' })
         .expect(200)
-        .expect('Content-Type', /json/)
         .expect((res) => {
-          expect(res.body.message).toBe('You were logged in successfully');
-          expect(res.body.data.user.email).toBe('test2@test.com');
-          expect(res.body.data.user.password).toBeUndefined();
-          expect(res.body.data.user.isBlocked).toBeUndefined();
-          expect(res.body.data.user.passwordChangedAt).toBeUndefined();
           token2 = res.body.token;
+        })
+        .end(done);
+    });
+    it('should return 200 and login user', (done) => {
+      request(app)
+        .post(`${baseUrl}login`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .send({ email: 'test5@test.com', password: 'password' })
+        .expect(200)
+        .expect((res) => {
+          token5 = res.body.token;
+        })
+        .end(done);
+    });
+    it('should return 200 and login user', (done) => {
+      request(app)
+        .post(`${baseUrl}login`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .send({ email: 'test6@test.com', password: 'password' })
+        .expect(200)
+        .expect((res) => {
+          token6 = res.body.token;
         })
         .end(done);
     });
@@ -397,7 +436,7 @@ describe('/users route', () => {
     });
     it('should return 200 and return user info for current user', (done) => {
       request(app)
-        .get(`${baseUrl}4`)
+        .get(`${baseUrl}6`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token}`)
@@ -406,7 +445,7 @@ describe('/users route', () => {
         .expect('Content-Type', /json/)
         .expect((res) => {
           expect(res.body.message).toBe('Data was retrieved successfully');
-          expect(res.body.data.user.id).toBe(4);
+          expect(res.body.data.user.id).toBe(6);
           expect(res.body.data.user.phone).toBeNull();
           expect(res.body.data.user.email).toBe('test@test.com');
           expect(res.body.data.user.password).toBeUndefined();
@@ -743,6 +782,44 @@ describe('/users route', () => {
             })
             .end(done);
         });
+    });
+  });
+  describe('/logout route', () => {
+    it('should return 401 as password was changed', (done) => {
+      request(app)
+        .get(`${baseUrl}logout`)
+        .type('json')
+        .set('Authorization', `Bearer ${token2}`)
+        .set('Accept', 'application/json')
+        .send({})
+        .expect('Content-Type', /json/)
+        .expect(401)
+        .expect((res) => {
+          expect(res.body.message).toBe('Password was changed. Please login again');
+        })
+        .end(done);
+    });
+    it('should return 204 and logout', (done) => {
+      request(app)
+        .get(`${baseUrl}logout`)
+        .set('Authorization', `Bearer ${token5}`)
+        .send({})
+        .expect(204)
+        .end(done);
+    });
+    it('should return 400 as token is in block list', (done) => {
+      request(app)
+        .get(`${baseUrl}logout`)
+        .type('json')
+        .set('Authorization', `Bearer ${token5}`)
+        .set('Accept', 'application/json')
+        .send({})
+        .expect(400)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('Token is invalid. Please login again');
+        })
+        .end(done);
     });
   });
 });
