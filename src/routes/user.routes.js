@@ -114,6 +114,6 @@ userRouter.post(
 userRouter.post('/report/:userId', report);
 
 userRouter.post('/block-account/:userId', inAuthorized('admin', 'moderator'), blockAccount);
-userRouter.delete('/unblock-account/:userId', inAuthorized('admin'), unblockAccount);
+userRouter.patch('/unblock-account/:userId', inAuthorized('admin'), unblockAccount);
 
 module.exports = userRouter;

@@ -1136,5 +1136,54 @@ describe('/users route', () => {
         .end(done);
     });
   });
+  describe('/unblock-account route', () => {
+    it('should return 401 as there is no token provided', (done) => {
+      request(app)
+        .patch(`${baseUrl}unblock-account/2`)
+        .set('Accept', 'application/json')
+        .send()
+        .expect(401)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('Sign in before accessing this route');
+        })
+        .end(done);
+    });
+    it('should return 403 as user is not allowed for this route with his role', (done) => {
+      request(app)
+        .patch(`${baseUrl}unblock-account/2`)
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token7}`)
+        .send()
+        .expect(403)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe("You don'\t have permission to access this route");
+        })
+        .end(done);
+    });
+    it('should return 404 as there is no such user', (done) => {
+      request(app)
+        .patch(`${baseUrl}unblock-account/100`)
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token8}`)
+        .send()
+        .expect(404)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('There is no user with such id');
+        })
+        .end(done);
+    });
+    it('should return 204 as there is no such user', (done) => {
+      request(app)
+        .patch(`${baseUrl}unblock-account/1`)
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token8}`)
+        .send()
+        .expect(204)
+        .end(done);
+    });
+  });
   describe.skip('/delete route', () => {});
 });
