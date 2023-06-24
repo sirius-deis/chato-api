@@ -1001,5 +1001,85 @@ describe('/users route', () => {
         .end(done);
     });
   });
+  describe('/unblock route', () => {
+    it('should return 401 as there is no token provided', (done) => {
+      request(app)
+        .delete(`${baseUrl}unblock/1`)
+        .set('Accept', 'application/json')
+        .send()
+        .expect(401)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('Sign in before accessing this route');
+        })
+        .end(done);
+    });
+    it("should return 400 as user can't block himself", (done) => {
+      request(app)
+        .delete(`${baseUrl}unblock/6`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token7}`)
+        .send()
+        .expect(400)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe("You can't block yourself");
+        })
+        .end(done);
+    });
+    it('should return 404 as there is no such user', (done) => {
+      request(app)
+        .delete(`${baseUrl}unblock/100`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token7}`)
+        .send()
+        .expect(404)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('There is no user with such id');
+        })
+        .end(done);
+    });
+    it('should return 400 as there is no such user blocked', (done) => {
+      request(app)
+        .delete(`${baseUrl}unblock/5`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token7}`)
+        .send()
+        .expect(400)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('This user is not blocked');
+        })
+        .end(done);
+    });
+    it('should return 400 as user with such id is not blocked', (done) => {
+      request(app)
+        .delete(`${baseUrl}unblock/7`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token7}`)
+        .send()
+        .expect(400)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('This user is not blocked');
+        })
+        .end(done);
+    });
+    it('should return 204 and unblock user', (done) => {
+      request(app)
+        .delete(`${baseUrl}unblock/1`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token7}`)
+        .send()
+        .expect(204)
+        .end(done);
+    });
+  });
   describe.skip('/delete route', () => {});
 });
