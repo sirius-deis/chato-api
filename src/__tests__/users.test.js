@@ -977,18 +977,14 @@ describe('/users route', () => {
         })
         .end(done);
     });
-    it('should return 200 and block user', (done) => {
+    it('should return 204 and block user', (done) => {
       request(app)
         .post(`${baseUrl}block/1`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
         .send({})
-        .expect(200)
-        .expect('Content-Type', /json/)
-        .expect((res) => {
-          expect(res.body.message).toBe('Selected user was blocked successfully');
-        })
+        .expect(204)
         .end(done);
     });
     it('should return 400 trying to block a blocked user', (done) => {
@@ -1005,18 +1001,14 @@ describe('/users route', () => {
         })
         .end(done);
     });
-    it('should return 200 and block a second user user', (done) => {
+    it('should return 204 and block a second user user', (done) => {
       request(app)
         .post(`${baseUrl}block/2`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
         .send({})
-        .expect(200)
-        .expect('Content-Type', /json/)
-        .expect((res) => {
-          expect(res.body.message).toBe('Selected user was blocked successfully');
-        })
+        .expect(204)
         .end(done);
     });
   });

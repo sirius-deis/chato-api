@@ -350,7 +350,7 @@ exports.blockUser = catchAsync(async (req, res, next) => {
     await blockList.save();
   }
 
-  res.status(200).json({ message: 'Selected user was blocked successfully' });
+  res.status(204).send();
 });
 
 exports.unblockUser = catchAsync(async (req, res, next) => {
