@@ -95,7 +95,7 @@ userRouter.patch(
   updatePassword,
 );
 
-userRouter.post(
+userRouter.delete(
   '/delete',
   isNotEmpty({ field: 'password' }),
   isWithLength({ field: 'password' }),

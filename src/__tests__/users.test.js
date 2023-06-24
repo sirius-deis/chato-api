@@ -1258,5 +1258,75 @@ describe('/users route', () => {
         .end(done);
     });
   });
-  describe.skip('/delete route', () => {});
+  describe('/delete route', () => {
+    it('should return 401 as there is no token provided', (done) => {
+      request(app)
+        .delete(`${baseUrl}delete`)
+        .set('Accept', 'application/json')
+        .send()
+        .expect(401)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('Sign in before accessing this route');
+        })
+        .end(done);
+    });
+    it('should return 400 as user input is empty', (done) => {
+      request(app)
+        .delete(`${baseUrl}delete`)
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token7}`)
+        .send({})
+        .expect(400)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toEqual([
+            "Field: password can't be empty",
+            "Field: password can't be shorter than 4 length",
+          ]);
+        })
+        .end(done);
+    });
+    it("should return 400 as user input doesn't pass validation", (done) => {
+      request(app)
+        .delete(`${baseUrl}delete`)
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token7}`)
+        .send({
+          password: 'pas',
+        })
+        .expect(400)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toEqual(["Field: password can't be shorter than 4 length"]);
+        })
+        .end(done);
+    });
+    it('should return 401 as password is incorrect', (done) => {
+      request(app)
+        .delete(`${baseUrl}delete`)
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token7}`)
+        .send({
+          password: 'password123',
+        })
+        .expect(401)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toEqual('Incorrect password');
+        })
+        .end(done);
+    });
+    it('should return 204 and delete account', (done) => {
+      request(app)
+        .delete(`${baseUrl}delete`)
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token7}`)
+        .send({
+          password: 'password',
+        })
+        .expect(204)
+        .end(done);
+    });
+  });
 });

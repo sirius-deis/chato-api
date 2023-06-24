@@ -49,6 +49,11 @@ const filterFieldsForUpdating = (fields) => {
   return isInserted && map;
 };
 
+const addTokenToBlackList = async (token, exp) => {
+  const tokenExpiresIn = (new Date(exp * 1000) - new Date()) / 1000;
+  await setValue(`bl-${token}`, token, tokenExpiresIn);
+};
+
 exports.signup = catchAsync(async (req, res, next) => {
   const { email, password, passwordConfirm } = req.body;
 
@@ -287,8 +292,7 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
 
 exports.logout = catchAsync(async (req, res) => {
   const { exp, token } = req;
-  const tokenExpiresIn = (new Date(exp * 1000) - new Date()) / 1000;
-  await setValue(`bl-${token}`, token, tokenExpiresIn);
+  await addTokenToBlackList(token, exp);
   res.status(204).send();
 });
 
@@ -297,7 +301,7 @@ exports.deleteMe = catchAsync(async (req, res, next) => {
   const { password } = req.body;
 
   if (!(await user.validatePassword(password))) {
-    return next(new AppError('Incorrect password', 400));
+    return next(new AppError('Incorrect password', 401));
   }
 
   await user.destroy();
@@ -317,8 +321,7 @@ exports.deactivate = catchAsync(async (req, res, next) => {
 
   await user.save();
 
-  const tokenExpiresIn = (new Date(exp * 1000) - new Date()) / 1000;
-  await setValue(`bl-${token}`, token, tokenExpiresIn);
+  await addTokenToBlackList(token, exp);
 
   res.status(204).send();
 });
