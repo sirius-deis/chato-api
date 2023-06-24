@@ -385,7 +385,7 @@ exports.blockAccount = catchAsync(async (req, res, next) => {
   }
   userToBlock.dataValues.isBlocked = true;
   await userToBlock.save();
-  res.status(200).json({ message: 'User account was blocked successfully' });
+  res.status(204).send();
 });
 
 exports.unblockAccount = catchAsync(async (req, res, next) => {
@@ -396,7 +396,7 @@ exports.unblockAccount = catchAsync(async (req, res, next) => {
   }
   userToUnblock.dataValues.isBlocked = false;
   await userToUnblock.save();
-  res.status(200).json({ message: 'User account was blocked successfully' });
+  res.status(204).send();
 });
 
 exports.report = catchAsync(async (req, res, next) => {

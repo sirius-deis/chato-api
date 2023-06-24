@@ -15,6 +15,7 @@ describe('/users route', () => {
   let token5;
   let token6;
   let token7;
+  let token8;
   beforeAll(async () => {
     await sequelize.authenticate();
     await sequelize.sync();
@@ -48,6 +49,12 @@ describe('/users route', () => {
       email: 'test7@test.com',
       password: 'password',
       isActive: true,
+    });
+    await User.create({
+      email: 'test8@test.com',
+      password: 'password',
+      isActive: true,
+      role: 'admin',
     });
   });
   afterAll(async () => {
@@ -308,6 +315,18 @@ describe('/users route', () => {
         })
         .end(done);
     });
+    it('should return 200 and login user', (done) => {
+      request(app)
+        .post(`${baseUrl}login`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .send({ email: 'test8@test.com', password: 'password' })
+        .expect(200)
+        .expect((res) => {
+          token8 = res.body.token;
+        })
+        .end(done);
+    });
   });
   describe('/update route', () => {
     it('should return 401 as there is no token', (done) => {
@@ -454,7 +473,7 @@ describe('/users route', () => {
     });
     it('should return 200 and return user info for current user', (done) => {
       request(app)
-        .get(`${baseUrl}7`)
+        .get(`${baseUrl}8`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token}`)
@@ -463,7 +482,7 @@ describe('/users route', () => {
         .expect('Content-Type', /json/)
         .expect((res) => {
           expect(res.body.message).toBe('Data was retrieved successfully');
-          expect(res.body.data.user.id).toBe(7);
+          expect(res.body.data.user.id).toBe(8);
           expect(res.body.data.user.phone).toBeNull();
           expect(res.body.data.user.email).toBe('test@test.com');
           expect(res.body.data.user.password).toBeUndefined();
@@ -1017,7 +1036,6 @@ describe('/users route', () => {
     it("should return 400 as user can't block himself", (done) => {
       request(app)
         .delete(`${baseUrl}unblock/6`)
-        .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
         .send()
@@ -1031,7 +1049,6 @@ describe('/users route', () => {
     it('should return 404 as there is no such user', (done) => {
       request(app)
         .delete(`${baseUrl}unblock/100`)
-        .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
         .send()
@@ -1045,7 +1062,6 @@ describe('/users route', () => {
     it('should return 400 as there is no such user blocked', (done) => {
       request(app)
         .delete(`${baseUrl}unblock/5`)
-        .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
         .send()
@@ -1059,7 +1075,6 @@ describe('/users route', () => {
     it('should return 400 as user with such id is not blocked', (done) => {
       request(app)
         .delete(`${baseUrl}unblock/7`)
-        .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
         .send()
@@ -1073,9 +1088,57 @@ describe('/users route', () => {
     it('should return 204 and unblock user', (done) => {
       request(app)
         .delete(`${baseUrl}unblock/1`)
-        .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
+        .send()
+        .expect(204)
+        .end(done);
+    });
+  });
+  describe('/block-account route', () => {
+    it('should return 401 as there is no token provided', (done) => {
+      request(app)
+        .post(`${baseUrl}block-account/2`)
+        .set('Accept', 'application/json')
+        .send()
+        .expect(401)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('Sign in before accessing this route');
+        })
+        .end(done);
+    });
+    it('should return 403 as user is not allowed for this route with his role', (done) => {
+      request(app)
+        .post(`${baseUrl}block-account/2`)
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token7}`)
+        .send()
+        .expect(403)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe("You don'\t have permission to access this route");
+        })
+        .end(done);
+    });
+    it('should return 404 as there is no such user', (done) => {
+      request(app)
+        .post(`${baseUrl}block-account/100`)
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token8}`)
+        .send()
+        .expect(404)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('There is no user with such id');
+        })
+        .end(done);
+    });
+    it('should return 204 as there is no such user', (done) => {
+      request(app)
+        .post(`${baseUrl}block-account/1`)
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token8}`)
         .send()
         .expect(204)
         .end(done);

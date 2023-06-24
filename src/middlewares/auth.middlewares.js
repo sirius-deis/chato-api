@@ -66,6 +66,7 @@ exports.inAuthorized = (...roles) =>
     if (!user) {
       return next(new AppError("User wasn't found. Please try to login again", 404));
     }
+
     if (!roles.includes(user.dataValues.role)) {
       return next(new AppError("You don'\t have permission to access this route", 403));
     }
