@@ -65,8 +65,8 @@ userRouter.use(isLoggedIn);
 
 userRouter.get('/logout', logout);
 
-userRouter.post('/block/:userId', blockUser);
-userRouter.delete('/unblock/:userId', unblockUser);
+userRouter.patch('/block/:userId', blockUser);
+userRouter.patch('/unblock/:userId', unblockUser);
 
 userRouter.get('/:userId', getUser);
 
@@ -111,9 +111,9 @@ userRouter.post(
   deactivate,
 );
 
-userRouter.post('/report/:userId', report);
+userRouter.patch('/report/:userId', report);
 
-userRouter.post('/block-account/:userId', inAuthorized('admin', 'moderator'), blockAccount);
+userRouter.patch('/block-account/:userId', inAuthorized('admin', 'moderator'), blockAccount);
 userRouter.patch('/unblock-account/:userId', inAuthorized('admin'), unblockAccount);
 
 module.exports = userRouter;

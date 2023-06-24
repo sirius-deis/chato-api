@@ -938,7 +938,7 @@ describe('/users route', () => {
   describe('/block route', () => {
     it('should return 401 as there is no token', (done) => {
       request(app)
-        .post(`${baseUrl}block/1`)
+        .patch(`${baseUrl}block/1`)
         .type('json')
         .set('Accept', 'application/json')
         .send({})
@@ -951,7 +951,7 @@ describe('/users route', () => {
     });
     it('should return 400 as user is trying to block himself', (done) => {
       request(app)
-        .post(`${baseUrl}block/6`)
+        .patch(`${baseUrl}block/6`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
@@ -965,7 +965,7 @@ describe('/users route', () => {
     });
     it('should return 404 as there is no such user', (done) => {
       request(app)
-        .post(`${baseUrl}block/100`)
+        .patch(`${baseUrl}block/100`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
@@ -977,19 +977,23 @@ describe('/users route', () => {
         })
         .end(done);
     });
-    it('should return 204 and block user', (done) => {
+    it('should return 200 and block user', (done) => {
       request(app)
-        .post(`${baseUrl}block/1`)
+        .patch(`${baseUrl}block/1`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
         .send({})
-        .expect(204)
+        .expect(200)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('User was blocked successfully');
+        })
         .end(done);
     });
     it('should return 400 trying to block a blocked user', (done) => {
       request(app)
-        .post(`${baseUrl}block/1`)
+        .patch(`${baseUrl}block/1`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
@@ -1003,19 +1007,23 @@ describe('/users route', () => {
     });
     it('should return 204 and block a second user user', (done) => {
       request(app)
-        .post(`${baseUrl}block/2`)
+        .patch(`${baseUrl}block/2`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
         .send({})
-        .expect(204)
+        .expect(200)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('User was blocked successfully');
+        })
         .end(done);
     });
   });
   describe('/unblock route', () => {
     it('should return 401 as there is no token provided', (done) => {
       request(app)
-        .delete(`${baseUrl}unblock/1`)
+        .patch(`${baseUrl}unblock/1`)
         .set('Accept', 'application/json')
         .send()
         .expect(401)
@@ -1027,7 +1035,7 @@ describe('/users route', () => {
     });
     it("should return 400 as user can't block himself", (done) => {
       request(app)
-        .delete(`${baseUrl}unblock/6`)
+        .patch(`${baseUrl}unblock/6`)
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
         .send()
@@ -1040,7 +1048,7 @@ describe('/users route', () => {
     });
     it('should return 404 as there is no such user', (done) => {
       request(app)
-        .delete(`${baseUrl}unblock/100`)
+        .patch(`${baseUrl}unblock/100`)
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
         .send()
@@ -1053,7 +1061,7 @@ describe('/users route', () => {
     });
     it('should return 400 as there is no such user blocked', (done) => {
       request(app)
-        .delete(`${baseUrl}unblock/5`)
+        .patch(`${baseUrl}unblock/5`)
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
         .send()
@@ -1066,7 +1074,7 @@ describe('/users route', () => {
     });
     it('should return 400 as user with such id is not blocked', (done) => {
       request(app)
-        .delete(`${baseUrl}unblock/7`)
+        .patch(`${baseUrl}unblock/7`)
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
         .send()
@@ -1079,18 +1087,22 @@ describe('/users route', () => {
     });
     it('should return 204 and unblock user', (done) => {
       request(app)
-        .delete(`${baseUrl}unblock/1`)
+        .patch(`${baseUrl}unblock/1`)
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
         .send()
-        .expect(204)
+        .expect(200)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('User was unblocked successfully');
+        })
         .end(done);
     });
   });
   describe('/block-account route', () => {
     it('should return 401 as there is no token provided', (done) => {
       request(app)
-        .post(`${baseUrl}block-account/2`)
+        .patch(`${baseUrl}block-account/2`)
         .set('Accept', 'application/json')
         .send()
         .expect(401)
@@ -1102,7 +1114,7 @@ describe('/users route', () => {
     });
     it('should return 403 as user is not allowed for this route with his role', (done) => {
       request(app)
-        .post(`${baseUrl}block-account/2`)
+        .patch(`${baseUrl}block-account/2`)
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
         .send()
@@ -1115,7 +1127,7 @@ describe('/users route', () => {
     });
     it('should return 404 as there is no such user', (done) => {
       request(app)
-        .post(`${baseUrl}block-account/100`)
+        .patch(`${baseUrl}block-account/100`)
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token8}`)
         .send()
@@ -1128,11 +1140,15 @@ describe('/users route', () => {
     });
     it('should return 204 as there is no such user', (done) => {
       request(app)
-        .post(`${baseUrl}block-account/1`)
+        .patch(`${baseUrl}block-account/1`)
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token8}`)
         .send()
-        .expect(204)
+        .expect(200)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('User account was blocked successfully');
+        })
         .end(done);
     });
   });
@@ -1175,13 +1191,70 @@ describe('/users route', () => {
         })
         .end(done);
     });
-    it('should return 204 as there is no such user', (done) => {
+    it('should return 200 and unblock user account', (done) => {
       request(app)
         .patch(`${baseUrl}unblock-account/1`)
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token8}`)
         .send()
-        .expect(204)
+        .expect(200)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('User account was unblocked successfully');
+        })
+        .end(done);
+    });
+  });
+  describe('/report route', () => {
+    it('should return 401 as there is no token provided', (done) => {
+      request(app)
+        .patch(`${baseUrl}report/2`)
+        .set('Accept', 'application/json')
+        .send()
+        .expect(401)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('Sign in before accessing this route');
+        })
+        .end(done);
+    });
+    it("should return 400 as user can't report his own account", (done) => {
+      request(app)
+        .patch(`${baseUrl}report/6`)
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token7}`)
+        .send()
+        .expect(400)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe("You can't report your account");
+        })
+        .end(done);
+    });
+    it('should return 404 as there is no user with such id', (done) => {
+      request(app)
+        .patch(`${baseUrl}report/100`)
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token7}`)
+        .send()
+        .expect(404)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('There is no user with such id');
+        })
+        .end(done);
+    });
+    it('should return 200 and report account', (done) => {
+      request(app)
+        .patch(`${baseUrl}report/3`)
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token7}`)
+        .send()
+        .expect(200)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('User account was reported successfully');
+        })
         .end(done);
     });
   });

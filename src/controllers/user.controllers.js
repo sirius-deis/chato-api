@@ -350,7 +350,7 @@ exports.blockUser = catchAsync(async (req, res, next) => {
     await blockList.save();
   }
 
-  res.status(204).send();
+  res.status(200).json({ message: 'User was blocked successfully' });
 });
 
 exports.unblockUser = catchAsync(async (req, res, next) => {
@@ -374,7 +374,7 @@ exports.unblockUser = catchAsync(async (req, res, next) => {
   );
   await blockList.save();
 
-  res.status(204).send();
+  res.status(200).json({ message: 'User was unblocked successfully' });
 });
 
 exports.blockAccount = catchAsync(async (req, res, next) => {
@@ -385,7 +385,7 @@ exports.blockAccount = catchAsync(async (req, res, next) => {
   }
   userToBlock.dataValues.isBlocked = true;
   await userToBlock.save();
-  res.status(204).send();
+  res.status(200).json({ message: 'User account was blocked successfully' });
 });
 
 exports.unblockAccount = catchAsync(async (req, res, next) => {
@@ -396,15 +396,15 @@ exports.unblockAccount = catchAsync(async (req, res, next) => {
   }
   userToUnblock.dataValues.isBlocked = false;
   await userToUnblock.save();
-  res.status(204).send();
+  res.status(200).json({ message: 'User account was unblocked successfully' });
 });
 
 exports.report = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { userId } = req.params;
 
-  if (user.dataValues.id === userId) {
-    return next(new AppError("You can't block yourself", 400));
+  if (user.dataValues.id.toString() === userId) {
+    return next(new AppError("You can't report your account", 400));
   }
 
   const userToReport = await User.findByPk(userId);
