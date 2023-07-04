@@ -54,3 +54,7 @@ DeletedMessage.belongsTo(Message, { foreignKey: 'message_id' });
 
 User.hasOne(BlockList, { onDelete: 'cascade', foreignKey: 'user_id' });
 BlockList.belongsTo(User, { foreignKey: 'user_id' });
+
+User.belongsToMany(User, { as: 'parents', through: 'user_contact', foreignKey: 'user_id' });
+
+User.belongsToMany(User, { as: 'children', through: 'user_contact', foreignKey: 'contact_id' });

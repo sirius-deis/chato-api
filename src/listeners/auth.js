@@ -4,11 +4,12 @@ const User = require('../models/user.models');
 const { JWT_SECRET } = process.env;
 
 module.exports = async (socket, next) => {
-  const token = socket.handshake.headers.authorization?.match(/Bearer (.*)$/)[1];
+  const token = socket.handshake.headers.authentication?.match(/Bearer (.*)$/)[1];
 
   if (!token) {
     const err = new Error('Authentication error');
     err.data = { type: 'authentication_error' };
+    socket.disconnect();
     return next(err);
   }
   let payload;
@@ -19,7 +20,7 @@ module.exports = async (socket, next) => {
     err.data = { type: 'token_verification_error' };
     return next(err);
   }
-  const user = await User.findById(payload.id);
+  const user = await User.findByPk(payload.userId);
   if (!user) {
     const err = new Error('User not found error');
     err.data = { type: 'user_not_found_error' };

@@ -11,9 +11,16 @@ module.exports = (server) => {
 
   io.on('connection', (socket) => {
     const { user } = socket;
-    listOfUsers.set(user._id, socket);
+    listOfUsers.set(user.id, socket);
+
+    socket.on('message', ({ message, conversationId }) => {});
+
     socket.on('disconnect', () => {
-      listOfUsers.delete(user._id);
+      listOfUsers.delete(user.id);
+    });
+
+    socket.on('connect_error', (err) => {
+      console.log(`connect_error due to ${err.message}`);
     });
   });
 };

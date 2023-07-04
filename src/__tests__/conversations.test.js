@@ -42,7 +42,7 @@ describe('/conversations route', () => {
   describe('/ route for creating conversation', () => {
     it('should return 401 as user is not logged in', (done) => {
       request(app)
-        .post(baseUrl)
+        .post(`/api/v1/users/${1}/conversations`)
         .set('Accept', 'application/json')
         .send({})
         .expect(401)
@@ -54,15 +54,57 @@ describe('/conversations route', () => {
     });
     it('should return 400 as user is trying to begin conversation with himself', (done) => {
       request(app)
-        .post(baseUrl)
+        .post(`/api/v1/users/${1}/conversations`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token}`)
-        .send({ receiverId: 1 })
+        .send()
         .expect(400)
         .expect('Content-Type', /json/)
         .expect((res) => {
           expect(res.body.message).toBe("You can't start conversation with yourself");
+        })
+        .end(done);
+    });
+    it('should return 404 as there is not such user', (done) => {
+      request(app)
+        .post(`/api/v1/users/${1000}/conversations`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token}`)
+        .send()
+        .expect(404)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('There is no user with such id');
+        })
+        .end(done);
+    });
+    it('should return 201 and create a conversation', (done) => {
+      request(app)
+        .post(`/api/v1/users/${2}/conversations`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token}`)
+        .send()
+        .expect(201)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('Conversation was created successfully');
+        })
+        .end(done);
+    });
+    it('should return 400 as conversation with this user already exists', (done) => {
+      request(app)
+        .post(`/api/v1/users/${2}/conversations`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token}`)
+        .send()
+        .expect(400)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('Conversation with this user is already exists');
         })
         .end(done);
     });

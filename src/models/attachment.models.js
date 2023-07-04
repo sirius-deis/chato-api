@@ -8,6 +8,11 @@ const Attachment = sequelize.define('message', {
     primaryKey: true,
     allowNull: false,
   },
+  thumbUrl: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    field: 'thumb_url',
+  },
   fileUrl: {
     type: DataTypes.STRING,
     allowNull: false,
