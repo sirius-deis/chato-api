@@ -7,7 +7,7 @@ const ActivateToken = require('../models/activateToken.models');
 const ResetToken = require('../models/resetToken.models');
 const User = require('../models/user.models');
 
-const baseUrl = '/api/v1/users/';
+const baseUrl = '/api/v1/users';
 
 describe('/users route', () => {
   let token;
@@ -18,7 +18,7 @@ describe('/users route', () => {
   let token8;
   beforeAll(async () => {
     await sequelize.authenticate();
-    await sequelize.sync();
+    await sequelize.sync({ force: true });
     await redisConnect();
     await User.create({
       email: 'test2@test.com',
@@ -65,7 +65,7 @@ describe('/users route', () => {
   describe('/signup route ', () => {
     it('should return 400 as body values are empty', (done) => {
       request(app)
-        .post(`${baseUrl}signup`)
+        .post(`${baseUrl}/signup`)
         .type('json')
         .set('Accept', 'application/json')
         .send({})
@@ -84,7 +84,7 @@ describe('/users route', () => {
     });
     it('should return 400 as password and passwordConfirm are too short', (done) => {
       request(app)
-        .post(`${baseUrl}signup`)
+        .post(`${baseUrl}/signup`)
         .type('json')
         .set('Accept', 'application/json')
         .send({ email: 'test@test.com', password: 'pas', passwordConfirm: 'pas' })
@@ -100,7 +100,7 @@ describe('/users route', () => {
     });
     it('should return 400 as password and passwordConfirm are not the same', (done) => {
       request(app)
-        .post(`${baseUrl}signup`)
+        .post(`${baseUrl}/signup`)
         .type('json')
         .set('Accept', 'application/json')
         .send({ email: 'test@test.com', password: 'password', passwordConfirm: 'password1' })
@@ -115,7 +115,7 @@ describe('/users route', () => {
     });
     it('should return 201 after successful registration', (done) => {
       request(app)
-        .post(`${baseUrl}signup`)
+        .post(`${baseUrl}/signup`)
         .type('json')
         .set('Accept', 'application/json')
         .send({ email: 'test@test.com', password: 'password', passwordConfirm: 'password' })
@@ -132,7 +132,7 @@ describe('/users route', () => {
   describe('/activate route ', () => {
     it('should return 404 as token does not exist', (done) => {
       request(app)
-        .get(`${baseUrl}activate/1`)
+        .get(`${baseUrl}/activate/1`)
         .type('json')
         .set('Accept', 'application/json')
         .send({})
@@ -148,7 +148,7 @@ describe('/users route', () => {
         .then((user) => ActivateToken.findOne({ where: { user_id: user.dataValues.id } }))
         .then((activateToken) => {
           request(app)
-            .get(`${baseUrl}activate/${activateToken.dataValues.token}`)
+            .get(`${baseUrl}/activate/${activateToken.dataValues.token}`)
             .type('json')
             .set('Accept', 'application/json')
             .send({})
@@ -166,7 +166,7 @@ describe('/users route', () => {
   describe('/login route ', () => {
     it('should return 400 as body values are empty', (done) => {
       request(app)
-        .post(`${baseUrl}login`)
+        .post(`${baseUrl}/login`)
         .type('json')
         .set('Accept', 'application/json')
         .send({})
@@ -183,7 +183,7 @@ describe('/users route', () => {
     });
     it('should return 400 as password is too short', (done) => {
       request(app)
-        .post(`${baseUrl}login`)
+        .post(`${baseUrl}/login`)
         .type('json')
         .set('Accept', 'application/json')
         .send({ email: 'test@test.com', password: 'pas' })
@@ -196,7 +196,7 @@ describe('/users route', () => {
     });
     it('should return 401 as password is incorrect', (done) => {
       request(app)
-        .post(`${baseUrl}login`)
+        .post(`${baseUrl}/login`)
         .type('json')
         .set('Accept', 'application/json')
         .send({ email: 'dontexist@test.com', password: 'password' })
@@ -209,7 +209,7 @@ describe('/users route', () => {
     });
     it('should return 401 as password is incorrect', (done) => {
       request(app)
-        .post(`${baseUrl}login`)
+        .post(`${baseUrl}/login`)
         .type('json')
         .set('Accept', 'application/json')
         .send({ email: 'test@test.com', password: 'password-incorrect' })
@@ -222,7 +222,7 @@ describe('/users route', () => {
     });
     it('should return 403 as account is deactivated', (done) => {
       request(app)
-        .post(`${baseUrl}login`)
+        .post(`${baseUrl}/login`)
         .type('json')
         .set('Accept', 'application/json')
         .send({ email: 'test3@test.com', password: 'password' })
@@ -237,7 +237,7 @@ describe('/users route', () => {
     });
     it('should return 403 as account is blocked', (done) => {
       request(app)
-        .post(`${baseUrl}login`)
+        .post(`${baseUrl}/login`)
         .type('json')
         .set('Accept', 'application/json')
         .send({ email: 'test4@test.com', password: 'password' })
@@ -250,7 +250,7 @@ describe('/users route', () => {
     });
     it('should return 200 and login user', (done) => {
       request(app)
-        .post(`${baseUrl}login`)
+        .post(`${baseUrl}/login`)
         .type('json')
         .set('Accept', 'application/json')
         .send({ email: 'test@test.com', password: 'password' })
@@ -269,7 +269,7 @@ describe('/users route', () => {
     });
     it('should return 200 and login user', (done) => {
       request(app)
-        .post(`${baseUrl}login`)
+        .post(`${baseUrl}/login`)
         .type('json')
         .set('Accept', 'application/json')
         .send({ email: 'test2@test.com', password: 'password' })
@@ -281,7 +281,7 @@ describe('/users route', () => {
     });
     it('should return 200 and login user', (done) => {
       request(app)
-        .post(`${baseUrl}login`)
+        .post(`${baseUrl}/login`)
         .type('json')
         .set('Accept', 'application/json')
         .send({ email: 'test5@test.com', password: 'password' })
@@ -293,7 +293,7 @@ describe('/users route', () => {
     });
     it('should return 200 and login user', (done) => {
       request(app)
-        .post(`${baseUrl}login`)
+        .post(`${baseUrl}/login`)
         .type('json')
         .set('Accept', 'application/json')
         .send({ email: 'test6@test.com', password: 'password' })
@@ -305,7 +305,7 @@ describe('/users route', () => {
     });
     it('should return 200 and login user', (done) => {
       request(app)
-        .post(`${baseUrl}login`)
+        .post(`${baseUrl}/login`)
         .type('json')
         .set('Accept', 'application/json')
         .send({ email: 'test7@test.com', password: 'password' })
@@ -317,7 +317,7 @@ describe('/users route', () => {
     });
     it('should return 200 and login user', (done) => {
       request(app)
-        .post(`${baseUrl}login`)
+        .post(`${baseUrl}/login`)
         .type('json')
         .set('Accept', 'application/json')
         .send({ email: 'test8@test.com', password: 'password' })
@@ -331,7 +331,7 @@ describe('/users route', () => {
   describe('/update route', () => {
     it('should return 401 as there is no token', (done) => {
       request(app)
-        .patch(`${baseUrl}update`)
+        .patch(`${baseUrl}/update`)
         .type('json')
         .set('Accept', 'application/json')
         .send({})
@@ -344,7 +344,7 @@ describe('/users route', () => {
     });
     it('should return 400 as body value are too short', (done) => {
       request(app)
-        .patch(`${baseUrl}update`)
+        .patch(`${baseUrl}/update`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token}`)
@@ -365,7 +365,7 @@ describe('/users route', () => {
     });
     it('should return 400 as there were no field provided for update', (done) => {
       request(app)
-        .patch(`${baseUrl}update`)
+        .patch(`${baseUrl}/update`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token}`)
@@ -379,7 +379,7 @@ describe('/users route', () => {
     });
     it('should return 200 and update info', (done) => {
       request(app)
-        .patch(`${baseUrl}update`)
+        .patch(`${baseUrl}/update`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token}`)
@@ -397,7 +397,7 @@ describe('/users route', () => {
     });
     it('should return 200 and update info', (done) => {
       request(app)
-        .patch(`${baseUrl}update`)
+        .patch(`${baseUrl}/update`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token2}`)
@@ -415,7 +415,7 @@ describe('/users route', () => {
   describe('/:userId route', () => {
     it('should return 401 as there is not token', (done) => {
       request(app)
-        .get(`${baseUrl}1`)
+        .get(`${baseUrl}/1`)
         .type('json')
         .set('Accept', 'application/json')
         .send()
@@ -428,7 +428,7 @@ describe('/users route', () => {
     });
     it('should return 500 as token format is incorrect', (done) => {
       request(app)
-        .get(`${baseUrl}1`)
+        .get(`${baseUrl}/1`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', '123')
@@ -442,7 +442,7 @@ describe('/users route', () => {
     });
     it('should return 401 as token is malformed', (done) => {
       request(app)
-        .get(`${baseUrl}1`)
+        .get(`${baseUrl}/1`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', 'Bearer 123')
@@ -456,7 +456,7 @@ describe('/users route', () => {
     });
     it('should return 401 as token is incorrect', (done) => {
       request(app)
-        .get(`${baseUrl}1`)
+        .get(`${baseUrl}/1`)
         .type('json')
         .set('Accept', 'application/json')
         .set(
@@ -473,7 +473,7 @@ describe('/users route', () => {
     });
     it('should return 200 and return user info for current user', (done) => {
       request(app)
-        .get(`${baseUrl}8`)
+        .get(`${baseUrl}/8`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token}`)
@@ -494,7 +494,7 @@ describe('/users route', () => {
     });
     it('should return 404 as there is no such user', (done) => {
       request(app)
-        .get(`${baseUrl}100`)
+        .get(`${baseUrl}/100`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token}`)
@@ -508,7 +508,7 @@ describe('/users route', () => {
     });
     it('should return 200 and return user info for not current user', (done) => {
       request(app)
-        .get(`${baseUrl}1`)
+        .get(`${baseUrl}/1`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token}`)
@@ -531,7 +531,7 @@ describe('/users route', () => {
   describe('/update-password route', () => {
     it('should return 401 as there is not token', (done) => {
       request(app)
-        .get(`${baseUrl}update-password`)
+        .get(`${baseUrl}/update-password`)
         .type('json')
         .set('Accept', 'application/json')
         .send({})
@@ -544,7 +544,7 @@ describe('/users route', () => {
     });
     it('should return 400 as body values are incorrect', (done) => {
       request(app)
-        .patch(`${baseUrl}update-password`)
+        .patch(`${baseUrl}/update-password`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token}`)
@@ -565,7 +565,7 @@ describe('/users route', () => {
     });
     it('should return 400 as body values are too short', (done) => {
       request(app)
-        .patch(`${baseUrl}update-password`)
+        .patch(`${baseUrl}/update-password`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token}`)
@@ -587,7 +587,7 @@ describe('/users route', () => {
     });
     it('should return 401 as current password is incorrect', (done) => {
       request(app)
-        .patch(`${baseUrl}update-password`)
+        .patch(`${baseUrl}/update-password`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token}`)
@@ -605,7 +605,7 @@ describe('/users route', () => {
     });
     it('should return 400 as current password and a new one are the same', (done) => {
       request(app)
-        .patch(`${baseUrl}update-password`)
+        .patch(`${baseUrl}/update-password`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token}`)
@@ -623,7 +623,7 @@ describe('/users route', () => {
     });
     it('should return 400 as password and confirm password are not the same', (done) => {
       request(app)
-        .patch(`${baseUrl}update-password`)
+        .patch(`${baseUrl}/update-password`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token}`)
@@ -641,7 +641,7 @@ describe('/users route', () => {
     });
     it('should return 200 and change password', (done) => {
       request(app)
-        .patch(`${baseUrl}update-password`)
+        .patch(`${baseUrl}/update-password`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token}`)
@@ -662,7 +662,7 @@ describe('/users route', () => {
   describe('/forget-password route', () => {
     it('should return 400 as there is not field with email', (done) => {
       request(app)
-        .post(`${baseUrl}forget-password`)
+        .post(`${baseUrl}/forget-password`)
         .type('json')
         .set('Accept', 'application/json')
         .send({})
@@ -675,7 +675,7 @@ describe('/users route', () => {
     });
     it('should return 404 as there is not such email', (done) => {
       request(app)
-        .post(`${baseUrl}forget-password`)
+        .post(`${baseUrl}/forget-password`)
         .type('json')
         .set('Accept', 'application/json')
         .send({
@@ -690,7 +690,7 @@ describe('/users route', () => {
     });
     it('should return 200 and send email', (done) => {
       request(app)
-        .post(`${baseUrl}forget-password`)
+        .post(`${baseUrl}/forget-password`)
         .type('json')
         .set('Accept', 'application/json')
         .send({
@@ -709,7 +709,7 @@ describe('/users route', () => {
   describe('/reset-password route', () => {
     it('should return 400 as body values are empty', (done) => {
       request(app)
-        .patch(`${baseUrl}reset-password/1`)
+        .patch(`${baseUrl}/reset-password/1`)
         .type('json')
         .set('Accept', 'application/json')
         .send({})
@@ -727,7 +727,7 @@ describe('/users route', () => {
     });
     it('should return 400 as body values are too short', (done) => {
       request(app)
-        .patch(`${baseUrl}reset-password/1`)
+        .patch(`${baseUrl}/reset-password/1`)
         .type('json')
         .set('Accept', 'application/json')
         .send({
@@ -746,7 +746,7 @@ describe('/users route', () => {
     });
     it('should return 404 as token is invalid', (done) => {
       request(app)
-        .patch(`${baseUrl}reset-password/1`)
+        .patch(`${baseUrl}/reset-password/1`)
         .type('json')
         .set('Accept', 'application/json')
         .send({
@@ -765,7 +765,7 @@ describe('/users route', () => {
         .then((user) => ResetToken.findOne({ where: { user_id: user.dataValues.id } }))
         .then((resetToken) => {
           request(app)
-            .patch(`${baseUrl}reset-password/${resetToken.dataValues.token}`)
+            .patch(`${baseUrl}/reset-password/${resetToken.dataValues.token}`)
             .type('json')
             .set('Accept', 'application/json')
             .send({
@@ -785,7 +785,7 @@ describe('/users route', () => {
         .then((user) => ResetToken.findOne({ where: { user_id: user.dataValues.id } }))
         .then((resetToken) => {
           request(app)
-            .patch(`${baseUrl}reset-password/${resetToken.dataValues.token}`)
+            .patch(`${baseUrl}/reset-password/${resetToken.dataValues.token}`)
             .type('json')
             .set('Accept', 'application/json')
             .send({
@@ -805,7 +805,7 @@ describe('/users route', () => {
         .then((user) => ResetToken.findOne({ where: { user_id: user.dataValues.id } }))
         .then((resetToken) => {
           request(app)
-            .patch(`${baseUrl}reset-password/${resetToken.dataValues.token}`)
+            .patch(`${baseUrl}/reset-password/${resetToken.dataValues.token}`)
             .type('json')
             .set('Accept', 'application/json')
             .send({
@@ -824,7 +824,7 @@ describe('/users route', () => {
   describe('/logout route', () => {
     it('should return 401 as password was changed', (done) => {
       request(app)
-        .get(`${baseUrl}logout`)
+        .get(`${baseUrl}/logout`)
         .type('json')
         .set('Authorization', `Bearer ${token2}`)
         .set('Accept', 'application/json')
@@ -838,7 +838,7 @@ describe('/users route', () => {
     });
     it('should return 204 and logout', (done) => {
       request(app)
-        .get(`${baseUrl}logout`)
+        .get(`${baseUrl}/logout`)
         .set('Authorization', `Bearer ${token5}`)
         .send({})
         .expect(204)
@@ -846,7 +846,7 @@ describe('/users route', () => {
     });
     it('should return 400 as token is in block list', (done) => {
       request(app)
-        .get(`${baseUrl}logout`)
+        .get(`${baseUrl}/logout`)
         .type('json')
         .set('Authorization', `Bearer ${token5}`)
         .set('Accept', 'application/json')
@@ -862,7 +862,7 @@ describe('/users route', () => {
   describe('/deactivate route', () => {
     it('should return 401 as there is no token provided', (done) => {
       request(app)
-        .post(`${baseUrl}deactivate`)
+        .post(`${baseUrl}/deactivate`)
         .type('json')
         .set('Accept', 'application/json')
         .send({})
@@ -875,7 +875,7 @@ describe('/users route', () => {
     });
     it('should return 400 as field values are invalid', (done) => {
       request(app)
-        .post(`${baseUrl}deactivate`)
+        .post(`${baseUrl}/deactivate`)
         .type('json')
         .set('Authorization', `Bearer ${token6}`)
         .set('Accept', 'application/json')
@@ -892,7 +892,7 @@ describe('/users route', () => {
     });
     it('should return 400 as field is too short', (done) => {
       request(app)
-        .post(`${baseUrl}deactivate`)
+        .post(`${baseUrl}/deactivate`)
         .type('json')
         .set('Authorization', `Bearer ${token6}`)
         .set('Accept', 'application/json')
@@ -908,7 +908,7 @@ describe('/users route', () => {
     });
     it('should return 401 as password is incorrect', (done) => {
       request(app)
-        .post(`${baseUrl}deactivate`)
+        .post(`${baseUrl}/deactivate`)
         .type('json')
         .set('Authorization', `Bearer ${token6}`)
         .set('Accept', 'application/json')
@@ -924,7 +924,7 @@ describe('/users route', () => {
     });
     it('should return 204 and deactivate account', (done) => {
       request(app)
-        .post(`${baseUrl}deactivate`)
+        .post(`${baseUrl}/deactivate`)
         .type('json')
         .set('Authorization', `Bearer ${token6}`)
         .set('Accept', 'application/json')
@@ -938,7 +938,7 @@ describe('/users route', () => {
   describe('/block route', () => {
     it('should return 401 as there is no token', (done) => {
       request(app)
-        .patch(`${baseUrl}block/1`)
+        .patch(`${baseUrl}/block/1`)
         .type('json')
         .set('Accept', 'application/json')
         .send({})
@@ -951,7 +951,7 @@ describe('/users route', () => {
     });
     it('should return 400 as user is trying to block himself', (done) => {
       request(app)
-        .patch(`${baseUrl}block/6`)
+        .patch(`${baseUrl}/block/6`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
@@ -965,7 +965,7 @@ describe('/users route', () => {
     });
     it('should return 404 as there is no such user', (done) => {
       request(app)
-        .patch(`${baseUrl}block/100`)
+        .patch(`${baseUrl}/block/100`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
@@ -979,7 +979,7 @@ describe('/users route', () => {
     });
     it('should return 200 and block user', (done) => {
       request(app)
-        .patch(`${baseUrl}block/1`)
+        .patch(`${baseUrl}/block/1`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
@@ -993,7 +993,7 @@ describe('/users route', () => {
     });
     it('should return 400 trying to block a blocked user', (done) => {
       request(app)
-        .patch(`${baseUrl}block/1`)
+        .patch(`${baseUrl}/block/1`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
@@ -1007,7 +1007,7 @@ describe('/users route', () => {
     });
     it('should return 204 and block a second user user', (done) => {
       request(app)
-        .patch(`${baseUrl}block/2`)
+        .patch(`${baseUrl}/block/2`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
@@ -1023,7 +1023,7 @@ describe('/users route', () => {
   describe('/unblock route', () => {
     it('should return 401 as there is no token provided', (done) => {
       request(app)
-        .patch(`${baseUrl}unblock/1`)
+        .patch(`${baseUrl}/unblock/1`)
         .set('Accept', 'application/json')
         .send()
         .expect(401)
@@ -1035,7 +1035,7 @@ describe('/users route', () => {
     });
     it("should return 400 as user can't block himself", (done) => {
       request(app)
-        .patch(`${baseUrl}unblock/6`)
+        .patch(`${baseUrl}/unblock/6`)
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
         .send()
@@ -1048,7 +1048,7 @@ describe('/users route', () => {
     });
     it('should return 404 as there is no such user', (done) => {
       request(app)
-        .patch(`${baseUrl}unblock/100`)
+        .patch(`${baseUrl}/unblock/100`)
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
         .send()
@@ -1061,7 +1061,7 @@ describe('/users route', () => {
     });
     it('should return 400 as there is no such user blocked', (done) => {
       request(app)
-        .patch(`${baseUrl}unblock/5`)
+        .patch(`${baseUrl}/unblock/5`)
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
         .send()
@@ -1074,7 +1074,7 @@ describe('/users route', () => {
     });
     it('should return 400 as user with such id is not blocked', (done) => {
       request(app)
-        .patch(`${baseUrl}unblock/7`)
+        .patch(`${baseUrl}/unblock/7`)
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
         .send()
@@ -1087,7 +1087,7 @@ describe('/users route', () => {
     });
     it('should return 204 and unblock user', (done) => {
       request(app)
-        .patch(`${baseUrl}unblock/1`)
+        .patch(`${baseUrl}/unblock/1`)
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
         .send()
@@ -1102,7 +1102,7 @@ describe('/users route', () => {
   describe('/block-account route', () => {
     it('should return 401 as there is no token provided', (done) => {
       request(app)
-        .patch(`${baseUrl}block-account/2`)
+        .patch(`${baseUrl}/block-account/2`)
         .set('Accept', 'application/json')
         .send()
         .expect(401)
@@ -1114,7 +1114,7 @@ describe('/users route', () => {
     });
     it('should return 403 as user is not allowed for this route with his role', (done) => {
       request(app)
-        .patch(`${baseUrl}block-account/2`)
+        .patch(`${baseUrl}/block-account/2`)
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
         .send()
@@ -1127,7 +1127,7 @@ describe('/users route', () => {
     });
     it('should return 404 as there is no such user', (done) => {
       request(app)
-        .patch(`${baseUrl}block-account/100`)
+        .patch(`${baseUrl}/block-account/100`)
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token8}`)
         .send()
@@ -1140,7 +1140,7 @@ describe('/users route', () => {
     });
     it('should return 204 as there is no such user', (done) => {
       request(app)
-        .patch(`${baseUrl}block-account/1`)
+        .patch(`${baseUrl}/block-account/1`)
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token8}`)
         .send()
@@ -1155,7 +1155,7 @@ describe('/users route', () => {
   describe('/unblock-account route', () => {
     it('should return 401 as there is no token provided', (done) => {
       request(app)
-        .patch(`${baseUrl}unblock-account/2`)
+        .patch(`${baseUrl}/unblock-account/2`)
         .set('Accept', 'application/json')
         .send()
         .expect(401)
@@ -1167,7 +1167,7 @@ describe('/users route', () => {
     });
     it('should return 403 as user is not allowed for this route with his role', (done) => {
       request(app)
-        .patch(`${baseUrl}unblock-account/2`)
+        .patch(`${baseUrl}/unblock-account/2`)
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
         .send()
@@ -1180,7 +1180,7 @@ describe('/users route', () => {
     });
     it('should return 404 as there is no such user', (done) => {
       request(app)
-        .patch(`${baseUrl}unblock-account/100`)
+        .patch(`${baseUrl}/unblock-account/100`)
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token8}`)
         .send()
@@ -1193,7 +1193,7 @@ describe('/users route', () => {
     });
     it('should return 200 and unblock user account', (done) => {
       request(app)
-        .patch(`${baseUrl}unblock-account/1`)
+        .patch(`${baseUrl}/unblock-account/1`)
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token8}`)
         .send()
@@ -1208,7 +1208,7 @@ describe('/users route', () => {
   describe('/report route', () => {
     it('should return 401 as there is no token provided', (done) => {
       request(app)
-        .patch(`${baseUrl}report/2`)
+        .patch(`${baseUrl}/report/2`)
         .set('Accept', 'application/json')
         .send()
         .expect(401)
@@ -1220,7 +1220,7 @@ describe('/users route', () => {
     });
     it("should return 400 as user can't report his own account", (done) => {
       request(app)
-        .patch(`${baseUrl}report/6`)
+        .patch(`${baseUrl}/report/6`)
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
         .send()
@@ -1233,7 +1233,7 @@ describe('/users route', () => {
     });
     it('should return 404 as there is no user with such id', (done) => {
       request(app)
-        .patch(`${baseUrl}report/100`)
+        .patch(`${baseUrl}/report/100`)
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
         .send()
@@ -1246,7 +1246,7 @@ describe('/users route', () => {
     });
     it('should return 200 and report account', (done) => {
       request(app)
-        .patch(`${baseUrl}report/3`)
+        .patch(`${baseUrl}/report/3`)
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
         .send()
@@ -1261,7 +1261,7 @@ describe('/users route', () => {
   describe('/delete route', () => {
     it('should return 401 as there is no token provided', (done) => {
       request(app)
-        .delete(`${baseUrl}delete`)
+        .delete(`${baseUrl}/delete`)
         .set('Accept', 'application/json')
         .send()
         .expect(401)
@@ -1273,7 +1273,7 @@ describe('/users route', () => {
     });
     it('should return 400 as user input is empty', (done) => {
       request(app)
-        .delete(`${baseUrl}delete`)
+        .delete(`${baseUrl}/delete`)
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
         .send({})
@@ -1289,7 +1289,7 @@ describe('/users route', () => {
     });
     it("should return 400 as user input doesn't pass validation", (done) => {
       request(app)
-        .delete(`${baseUrl}delete`)
+        .delete(`${baseUrl}/delete`)
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
         .send({
@@ -1304,7 +1304,7 @@ describe('/users route', () => {
     });
     it('should return 401 as password is incorrect', (done) => {
       request(app)
-        .delete(`${baseUrl}delete`)
+        .delete(`${baseUrl}/delete`)
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
         .send({
@@ -1319,7 +1319,7 @@ describe('/users route', () => {
     });
     it('should return 204 and delete account', (done) => {
       request(app)
-        .delete(`${baseUrl}delete`)
+        .delete(`${baseUrl}/delete`)
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
         .send({

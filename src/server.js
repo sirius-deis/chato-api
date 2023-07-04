@@ -1,4 +1,5 @@
 require('dotenv').config();
+const http = require('http');
 const app = require('./app');
 const { sequelize } = require('./db/db.config');
 const { redisConnect } = require('./db/redis.config');
@@ -7,7 +8,8 @@ require('./associations');
 
 const { PORT = 3000 } = process.env;
 
-let server;
+const server = http.createServer(app);
+require('./listeners/socket')(server);
 
 const connect = async () => {
   try {
@@ -27,7 +29,7 @@ const start = async () => {
   await connect();
   await sync();
   await redisConnect();
-  server = app.listen(PORT, () => {
+  server.listen(PORT, () => {
     global.serverStartedAt = new Date();
     logger.info(`Server is running on port: ${PORT}`);
   });
@@ -37,9 +39,9 @@ const start = async () => {
   const index = event.search(/[A-Z]/);
   process.on(event, (err) => {
     logger.error(
-      `Server is running on port: ${event.slice(0, index).toUpperCase()} ${event.slice(index).toUpperCase()}. \n ${
-        err.message
-      }`,
+      `Server is running on port: ${event.slice(0, index).toUpperCase()} ${event
+        .slice(index)
+        .toUpperCase()}. \n ${err.message}`,
     );
     server.close(() => {
       process.exit(1);

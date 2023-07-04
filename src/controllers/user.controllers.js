@@ -7,6 +7,7 @@ const { arePasswordsTheSame } = require('../utils/validator');
 const sendMail = require('../api/email');
 const { sequelize } = require('../db/db.config');
 const { setValue } = require('../db/redis.config');
+const { resizeAndSave } = require('../api/file');
 
 const User = require('../models/user.models');
 const ActivateToken = require('../models/activateToken.models');
@@ -420,4 +421,19 @@ exports.report = catchAsync(async (req, res, next) => {
   await userToReport.save();
 
   res.status(200).json({ message: 'User account was reported successfully' });
+});
+
+//TODO: add cloud storage
+exports.addProfilePhoto = catchAsync(async (req, res, next) => {
+  const { user, file } = req;
+  const { buffer, originalName } = file;
+  const timestamp = new Date().toISOString();
+  const fileName = `${timestamp}-${originalName}`;
+  const filePath = `${__dirname}/${fileName}`;
+  await resizeAndSave(buffer, { width: 100, height: 100 }, 'jpeg', filePath);
+  res.status(200).json({ message: 'Photo was added successfully' });
+});
+
+exports.deleteProfilePhoto = catchAsync(async (req, res, next) => {
+  res.status(200).json({ message: 'Photo was deleted successfully' });
 });

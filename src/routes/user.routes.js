@@ -17,6 +17,8 @@ const {
   blockAccount,
   unblockAccount,
   report,
+  addProfilePhoto,
+  deleteProfilePhoto,
 } = require('../controllers/user.controllers');
 const conversationRouter = require('./conversation.routes');
 const { isEmail, isWithLength, isNotEmpty } = require('../utils/validator');
@@ -110,6 +112,9 @@ userRouter.post(
   validationMiddleware,
   deactivate,
 );
+
+userRouter.patch('/add-photo', addProfilePhoto);
+userRouter.patch('/delete-photo', deleteProfilePhoto);
 
 userRouter.patch('/report/:userId', report);
 
