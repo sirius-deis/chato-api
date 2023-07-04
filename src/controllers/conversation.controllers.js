@@ -45,6 +45,9 @@ exports.getAllConversations = catchAsync(async (req, res, next) => {
   if (!participants.length) {
     return res.status(200).json({
       message: "This user doesn't participate in any conversations",
+      data: {
+        conversations: [],
+      },
     });
   }
 
@@ -119,6 +122,10 @@ exports.deleteConversation = catchAsync(async (req, res, next) => {
 
   const conversation = await Conversation.findByPk(conversationId);
 
+  if (!conversation) {
+    return next(new AppError('There is no such conversation', 404));
+  }
+
   // eslint-disable-next-line max-len
   const participants = await Participant.findAll({
     where: { user_id: user.id },
@@ -131,7 +138,7 @@ exports.deleteConversation = catchAsync(async (req, res, next) => {
   );
 
   if (!participantInConversation) {
-    return next(new AppError('There is no such conversation', 404));
+    return next(new AppError('There is no such conversation for selected user', 401));
   }
 
   const isDeleted = await DeletedConversation.findOne({
@@ -144,7 +151,7 @@ exports.deleteConversation = catchAsync(async (req, res, next) => {
   });
 
   if (isDeleted) {
-    return next(new AppError('There conversation is already deleted', 404));
+    return next(new AppError('This conversation is already deleted', 400));
   }
 
   if (participantInConversation) {
@@ -155,7 +162,7 @@ exports.deleteConversation = catchAsync(async (req, res, next) => {
     });
   }
 
-  res.status(201).json({
+  res.status(204).json({
     message: 'Conversation was deleted successfully',
   });
 });
