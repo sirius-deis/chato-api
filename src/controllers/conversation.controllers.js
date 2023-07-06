@@ -25,23 +25,17 @@ const findIfConversationExists = (arr1, arr2) => {
 exports.getAllConversations = catchAsync(async (req, res, next) => {
   const { user } = req;
 
-  const participants = await Participant.findAll({
-    where: {
-      userId: user.id,
-    },
-    include: {
-      model: Conversation,
-      attributes: ['id', 'title', 'type', 'creatorId'],
-      include: {
+  const conversations = await user.getConversations({
+    include: [
+      {
         model: Message,
         order: [['createdAt', 'DESC']],
-        attributes: ['id', 'messageType', 'message', 'senderId'],
         limit: 1,
       },
-    },
+    ],
   });
 
-  if (!participants.length) {
+  if (!conversations.length) {
     return res.status(200).json({
       message: "This user doesn't participate in any conversations",
       data: {
@@ -58,9 +52,9 @@ exports.getAllConversations = catchAsync(async (req, res, next) => {
   return res.status(200).json({
     message: 'Conversations were found',
     data: {
-      conversations: participants
-        .map((participant) => participant.conversations[0])
-        .filter((conversation) => !deletedIds.includes(conversation.id)),
+      conversations: conversations.filter(
+        (conversation) => !deletedIds.includes(conversation.dataValues.id),
+      ),
     },
   });
 });
@@ -68,6 +62,7 @@ exports.getAllConversations = catchAsync(async (req, res, next) => {
 exports.createConversation = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { receiverId } = req.params;
+  const { title } = req.body;
 
   if (user.dataValues.id.toString() === receiverId) {
     return next(new AppError("You can't start conversation with yourself", 400));
@@ -104,6 +99,7 @@ exports.createConversation = catchAsync(async (req, res, next) => {
     const conversation = await Conversation.create({
       type: 'private',
       creatorId: user.dataValues.id,
+      title,
     });
     conversation.addUser(user.dataValues.id, { through: { role: 'user' } });
     conversation.addUser(receiver.dataValues.id, { through: { role: 'user' } });

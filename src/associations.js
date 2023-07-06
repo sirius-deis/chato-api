@@ -16,6 +16,9 @@ ResetToken.belongsTo(User, { foreignKey: 'userId' });
 User.belongsToMany(Conversation, { through: Participant });
 Conversation.belongsToMany(User, { through: Participant });
 
+User.hasMany(Conversation, { onDelete: 'cascade', foreignKey: 'creatorId' });
+Conversation.belongsTo(User, { foreignKey: 'creatorId' });
+
 Conversation.hasMany(Message, { onDelete: 'cascade', foreignKey: 'conversationId' });
 Message.belongsTo(Conversation, { foreignKey: 'conversationId' });
 

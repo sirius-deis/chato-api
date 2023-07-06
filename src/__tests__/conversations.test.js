@@ -190,12 +190,12 @@ describe('/conversations route', () => {
         .expect((res) => {
           expect(res.body.message).toBe('Conversations were found');
           expect(res.body.data.conversations.length).toBe(1);
-          expect(res.body.data.conversations[0].creator_id).toBe(1);
+          expect(res.body.data.conversations[0].creatorId).toBe(1);
         })
         .end(done);
     });
   });
-  describe.skip('/:conversationId delete route', () => {
+  describe('/:conversationId delete route', () => {
     it('should return 401 as there was no token provided', (done) => {
       request(app)
         .delete(`${baseUrl}/${1}`)
