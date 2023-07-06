@@ -9,7 +9,6 @@ const ResetToken = sequelize.define('reset_tokens', {
   createdAt: {
     type: DataTypes.DATE,
     defaultValue: new Date(),
-    field: 'created_at',
   },
 });
 

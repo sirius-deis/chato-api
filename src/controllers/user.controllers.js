@@ -66,7 +66,7 @@ exports.signup = catchAsync(async (req, res, next) => {
     const user = await User.create({ email, password });
     const token = createToken();
 
-    await ActivateToken.create({ token, user_id: user.id });
+    await ActivateToken.create({ token, userId: user.id });
 
     link = buildLink(req, token, 'activate');
   });
@@ -133,7 +133,7 @@ exports.activate = catchAsync(async (req, res, next) => {
     return next(new AppError('Token does not exist. Please check if it is correct', 404));
   }
 
-  const user = await User.scope('withIsActive').findByPk(token.dataValues.user_id);
+  const user = await User.scope('withIsActive').findByPk(token.dataValues.userId);
 
   if (!user) {
     return next(new AppError('Token is invalid. Please try again', 400));
@@ -244,7 +244,7 @@ exports.forgetPassword = catchAsync(async (req, res, next) => {
   }
 
   const token = createToken();
-  await ResetToken.create({ token, user_id: user.dataValues.id });
+  await ResetToken.create({ token, userId: user.dataValues.id });
 
   const link = buildLink(req, token, 'reset-password');
 
@@ -263,7 +263,7 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
     return next(new AppError('Token is not exist. Please check if it is correct', 404));
   }
 
-  const user = await User.scope('withPassword').findByPk(token.dataValues.user_id);
+  const user = await User.scope('withPassword').findByPk(token.dataValues.userId);
 
   if (!user) {
     return next(new AppError('There is no user for such token', 400));
@@ -339,18 +339,18 @@ exports.blockUser = catchAsync(async (req, res, next) => {
     return next(new AppError('There is no user with such id', 404));
   }
 
-  const blockList = await BlockList.findOne({ where: { user_id: user.dataValues.id } });
+  const blockList = await BlockList.findOne({ where: { userId: user.dataValues.id } });
 
   if (!blockList) {
     await BlockList.create({
-      user_id: user.dataValues.id,
+      userId: user.dataValues.id,
       blockedUsers: [userId],
     });
   } else {
     if (blockList.dataValues.blockedUsers.includes(userId)) {
       return next(new AppError('User with such id is already blocked', 400));
     }
-    blockList.dataValues.blockedUsers.push(userId);
+    blockList.dataValues.blockedUsers = blockList.dataValues.blockedUsers.concat(userId);
     await blockList.save();
   }
 
@@ -363,18 +363,24 @@ exports.unblockUser = catchAsync(async (req, res, next) => {
   if (user.dataValues.id.toString() === userId) {
     return next(new AppError("You can't block yourself", 400));
   }
-  const userToUnblock = await User.findByPk(userId);
-  if (!userToUnblock) {
+
+  const userToBlock = await User.findByPk(userId);
+
+  if (!userToBlock) {
     return next(new AppError('There is no user with such id', 404));
   }
 
-  const blockList = await BlockList.findOne({ where: { user_id: user.dataValues.id } });
-  if (!blockList || !blockList.dataValues?.blockedUsers.includes(userId)) {
+  const blockList = await BlockList.findOne({ where: { userId: user.dataValues.id } });
+
+  if (
+    !blockList ||
+    !blockList.dataValues?.blockedUsers.includes(userToBlock.dataValues.id.toString())
+  ) {
     return next(new AppError('This user is not blocked', 400));
   }
 
   blockList.dataValues.blockedUsers = blockList.dataValues.blockedUsers.filter(
-    (blockedId) => blockedId !== userId,
+    (blockedId) => blockedId !== userToBlock,
   );
   await blockList.save();
 

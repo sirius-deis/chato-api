@@ -145,7 +145,7 @@ describe('/users route', () => {
     });
     it('should return 200 and activate account', (done) => {
       User.findOne({ where: { email: 'test@test.com' } })
-        .then((user) => ActivateToken.findOne({ where: { user_id: user.dataValues.id } }))
+        .then((user) => ActivateToken.findOne({ where: { userId: user.dataValues.id } }))
         .then((activateToken) => {
           request(app)
             .get(`${baseUrl}/activate/${activateToken.dataValues.token}`)
@@ -762,7 +762,7 @@ describe('/users route', () => {
     });
     it('should return 400 as password is the same as previous one', (done) => {
       User.findOne({ where: { email: 'test2@test.com' } })
-        .then((user) => ResetToken.findOne({ where: { user_id: user.dataValues.id } }))
+        .then((user) => ResetToken.findOne({ where: { userId: user.dataValues.id } }))
         .then((resetToken) => {
           request(app)
             .patch(`${baseUrl}/reset-password/${resetToken.dataValues.token}`)
@@ -782,7 +782,7 @@ describe('/users route', () => {
     });
     it('should return 400 as passwords are not the same', (done) => {
       User.findOne({ where: { email: 'test2@test.com' } })
-        .then((user) => ResetToken.findOne({ where: { user_id: user.dataValues.id } }))
+        .then((user) => ResetToken.findOne({ where: { userId: user.dataValues.id } }))
         .then((resetToken) => {
           request(app)
             .patch(`${baseUrl}/reset-password/${resetToken.dataValues.token}`)
@@ -802,7 +802,7 @@ describe('/users route', () => {
     });
     it('should return 200 and change a password', (done) => {
       User.findOne({ where: { email: 'test2@test.com' } })
-        .then((user) => ResetToken.findOne({ where: { user_id: user.dataValues.id } }))
+        .then((user) => ResetToken.findOne({ where: { userId: user.dataValues.id } }))
         .then((resetToken) => {
           request(app)
             .patch(`${baseUrl}/reset-password/${resetToken.dataValues.token}`)
@@ -1085,7 +1085,7 @@ describe('/users route', () => {
         })
         .end(done);
     });
-    it('should return 204 and unblock user', (done) => {
+    it('should return 200 and unblock user', (done) => {
       request(app)
         .patch(`${baseUrl}/unblock/1`)
         .set('Accept', 'application/json')

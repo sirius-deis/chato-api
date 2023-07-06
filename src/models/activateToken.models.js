@@ -9,7 +9,6 @@ const ActivateToken = sequelize.define('activate_tokens', {
   createdAt: {
     type: DataTypes.DATE,
     defaultValue: new Date(),
-    field: 'created_at',
   },
 });
 

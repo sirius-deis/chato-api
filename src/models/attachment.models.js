@@ -11,12 +11,10 @@ const Attachment = sequelize.define('message', {
   thumbUrl: {
     type: DataTypes.STRING,
     allowNull: true,
-    field: 'thumb_url',
   },
   fileUrl: {
     type: DataTypes.STRING,
     allowNull: false,
-    field: 'file_url',
   },
 });
 

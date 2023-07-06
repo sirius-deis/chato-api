@@ -2,13 +2,7 @@ const { DataTypes } = require('sequelize');
 const { sequelize } = require('../db/db.config');
 
 const Participant = sequelize.define('participants', {
-  id: {
-    type: DataTypes.INTEGER,
-    autoIncrement: true,
-    primaryKey: true,
-    allowNull: false,
-  },
-  type: {
+  role: {
     type: DataTypes.ENUM('user', 'admin', 'owner'),
     default: 'user',
   },

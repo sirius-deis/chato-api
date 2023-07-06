@@ -23,9 +23,9 @@ exports.isLoggedIn = catchAsync(async (req, res, next) => {
     return next(new AppError('Token verification failed. Token is malformed', 401));
   }
 
-  if (payload.iat * 1000 < global.serverStartedAt.getTime()) {
-    return next(new AppError('Please login again', 400));
-  }
+  // if (payload.iat * 1000 < global.serverStartedAt.getTime()) {
+  //   return next(new AppError('Please login again', 400));
+  // }
 
   const isTokenInBlackList = await getValue(`bl-${token}`);
 

@@ -69,15 +69,17 @@ exports.getAllConversations = catchAsync(async (req, res, next) => {
 exports.createConversation = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { receiverId } = req.params;
-  const receiver = await User.findByPk(receiverId);
 
   if (user.dataValues.id.toString() === receiverId) {
     return next(new AppError("You can't start conversation with yourself", 400));
   }
 
+  const receiver = await User.findByPk(receiverId);
+
   if (!receiver) {
     return next(new AppError('There is no user with such id', 404));
   }
+
   const participantsArr = await Promise.all([
     Participant.findAll({ where: { user_id: user.id }, include: [{ model: Conversation }] }),
     Participant.findAll({ where: { user_id: receiver.id }, include: [{ model: Conversation }] }),

@@ -12,12 +12,11 @@ const BlockList = sequelize.define('block_list', {
     type: DataTypes.JSON({
       type: DataTypes.INTEGER,
       references: {
-        model: 'participants',
+        model: 'users',
         key: 'id',
       },
       allowNull: false,
     }),
-    field: 'blocked_users',
   },
 });
 

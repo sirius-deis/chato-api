@@ -33,11 +33,9 @@ const User = sequelize.define(
     },
     firstName: {
       type: DataTypes.STRING(20),
-      field: 'first_name',
     },
     lastName: {
       type: DataTypes.STRING(20),
-      field: 'last_name',
     },
     bio: {
       type: DataTypes.TEXT,
@@ -45,17 +43,14 @@ const User = sequelize.define(
     isActive: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
-      field: 'is_active',
     },
     isReported: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
-      field: 'is_reported',
     },
     isBlocked: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
-      field: 'is_blocked',
     },
     role: {
       type: DataTypes.ENUM('user', 'moderator', 'admin'),
@@ -63,7 +58,6 @@ const User = sequelize.define(
     },
     lastSeen: {
       type: DataTypes.DATE,
-      field: 'last_seen',
     },
   },
   {

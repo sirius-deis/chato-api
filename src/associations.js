@@ -8,53 +8,40 @@ const DeletedConversation = require('./models/deletedConversation.models');
 const DeletedMessage = require('./models/deletedMessage.models');
 const BlockList = require('./models/blockList.models');
 
-User.hasOne(ActivateToken, { onDelete: 'cascade', foreignKey: 'user_id' });
-ActivateToken.belongsTo(User, { foreignKey: 'user_id' });
+User.hasOne(ActivateToken, { onDelete: 'cascade', foreignKey: 'userId' });
+ActivateToken.belongsTo(User, { foreignKey: 'userId' });
 
-User.hasOne(ResetToken, { onDelete: 'cascade', foreignKey: 'user_id' });
-ResetToken.belongsTo(User, { foreignKey: 'user_id' });
+User.hasOne(ResetToken, { onDelete: 'cascade', foreignKey: 'userId' });
+ResetToken.belongsTo(User, { foreignKey: 'userId' });
 
-Conversation.belongsToMany(Participant, {
-  through: 'participants_in_conversation',
-  foreignKey: 'conversation_id',
-});
-Participant.belongsToMany(Conversation, {
-  through: 'participants_in_conversation',
-  foreignKey: 'participant_id',
-});
+User.belongsToMany(Conversation, { through: Participant });
+Conversation.belongsToMany(User, { through: Participant });
 
-User.hasMany(Conversation, { foreignKey: 'creator_id' });
-Conversation.belongsTo(User, { foreignKey: 'creator_id' });
+Conversation.hasMany(Message, { onDelete: 'cascade', foreignKey: 'conversationId' });
+Message.belongsTo(Conversation, { foreignKey: 'conversationId' });
 
-User.hasOne(Participant, { foreignKey: 'user_id' });
-Participant.belongsTo(User, { foreignKey: 'user_id' });
+User.hasMany(Message, { onDelete: 'cascade', foreignKey: 'senderId' });
+Message.belongsTo(User, { foreignKey: 'senderId' });
 
-Conversation.hasMany(Message, { onDelete: 'cascade', foreignKey: 'conversation_id' });
-Message.belongsTo(Conversation, { foreignKey: 'conversation_id' });
+User.hasMany(DeletedConversation, { onDelete: 'cascade', foreignKey: 'userId' });
+DeletedConversation.belongsTo(User, { foreignKey: 'userId' });
 
-Participant.hasMany(Message, { onDelete: 'cascade', foreignKey: 'sender_id' });
-Message.belongsTo(Participant, { foreignKey: 'sender_id' });
-
-User.hasMany(DeletedConversation, { onDelete: 'cascade', foreignKey: 'user_id' });
-DeletedConversation.belongsTo(User, { foreignKey: 'user_id' });
-
-Conversation.hasOne(DeletedConversation, { onDelete: 'cascade', foreignKey: 'conversation_id' });
-DeletedConversation.belongsTo(Conversation, { foreignKey: 'conversation_id' });
+Conversation.hasOne(DeletedConversation, { onDelete: 'cascade', foreignKey: 'conversationId' });
+DeletedConversation.belongsTo(Conversation, { foreignKey: 'conversationId' });
 
 User.hasMany(DeletedMessage, {
   onDelete: 'cascade',
-  foreignKey: 'user_id',
+  foreignKey: 'userId',
 });
 DeletedMessage.belongsTo(User, {
-  foreignKey: 'user_id',
+  foreignKey: 'userId',
 });
 
-Message.hasOne(DeletedMessage, { onDelete: 'cascade', foreignKey: 'message_id' });
-DeletedMessage.belongsTo(Message, { foreignKey: 'message_id' });
+Message.hasOne(DeletedMessage, { onDelete: 'cascade', foreignKey: 'messageId' });
+DeletedMessage.belongsTo(Message, { foreignKey: 'messageId' });
 
-User.hasOne(BlockList, { onDelete: 'cascade', foreignKey: 'user_id' });
-BlockList.belongsTo(User, { foreignKey: 'user_id' });
+User.hasOne(BlockList, { onDelete: 'cascade', foreignKey: 'userId' });
+BlockList.belongsTo(User, { foreignKey: 'userId' });
 
-User.belongsToMany(User, { as: 'parents', through: 'user_contact', foreignKey: 'user_id' });
-
-User.belongsToMany(User, { as: 'children', through: 'user_contact', foreignKey: 'contact_id' });
+User.belongsToMany(User, { as: 'parents', through: 'user_contacts', foreignKey: 'userId' });
+User.belongsToMany(User, { as: 'children', through: 'user_contacts', foreignKey: 'contactId' });

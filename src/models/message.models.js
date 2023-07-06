@@ -11,7 +11,6 @@ const Message = sequelize.define('messages', {
   messageType: {
     type: DataTypes.ENUM('text', 'image', 'audio', 'video', 'system'),
     defaultValue: 'text',
-    field: 'message_type',
   },
   message: {
     type: DataTypes.TEXT,
@@ -19,15 +18,17 @@ const Message = sequelize.define('messages', {
   repliedMessageId: {
     type: DataTypes.INTEGER,
   },
-  createdAt: {
-    type: DataTypes.DATE,
-    defaultValue: new Date(),
-    field: 'created_at',
-  },
   isEdited: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
-    field: 'is_edited',
+  },
+  isRead: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
+  createdAt: {
+    type: DataTypes.DATE,
+    defaultValue: new Date(),
   },
 });
 
