@@ -12,7 +12,6 @@ const { resizeAndSave } = require('../api/file');
 const User = require('../models/user.models');
 const ActivateToken = require('../models/activateToken.models');
 const ResetToken = require('../models/resetToken.models');
-const BlockList = require('../models/blockList.models');
 
 // eslint-disable-next-line object-curly-newline
 const { MODE, PORT, JWT_SECRET, JWT_EXPIRES_IN } = process.env;
@@ -63,7 +62,7 @@ exports.signup = catchAsync(async (req, res, next) => {
   }
   let link;
   await sequelize.transaction(async () => {
-    const user = await User.create({ email, password });
+    const user = await User.create({ email, password, isActive: true });
     const token = createToken();
 
     await ActivateToken.create({ token, userId: user.id });
@@ -329,60 +328,48 @@ exports.deactivate = catchAsync(async (req, res, next) => {
 
 exports.blockUser = catchAsync(async (req, res, next) => {
   const { user } = req;
-  const { userId } = req.params;
-  if (user.dataValues.id.toString() === userId) {
+  const { userId: userIdToBlock } = req.params;
+  if (user.dataValues.id.toString() === userIdToBlock) {
     return next(new AppError("You can't block yourself", 400));
   }
-  const userToBlock = await User.findByPk(userId);
+  const userToBlock = await User.findByPk(userIdToBlock);
 
   if (!userToBlock) {
     return next(new AppError('There is no user with such id', 404));
   }
 
-  const blockList = await BlockList.findOne({ where: { userId: user.dataValues.id } });
+  const blockList = await user.getBlocker();
 
-  if (!blockList) {
-    await BlockList.create({
-      userId: user.dataValues.id,
-      blockedUsers: [userId],
-    });
-  } else {
-    if (blockList.dataValues.blockedUsers.includes(userId)) {
-      return next(new AppError('User with such id is already blocked', 400));
-    }
-    blockList.dataValues.blockedUsers = blockList.dataValues.blockedUsers.concat(userId);
-    await blockList.save();
+  if (blockList.find((blockedUser) => blockedUser.dataValues.id.toString() === userIdToBlock)) {
+    return next(new AppError('User with such id is already blocked', 400));
   }
+  await user.addBlocker(userIdToBlock);
 
   res.status(200).json({ message: 'User was blocked successfully' });
 });
 
 exports.unblockUser = catchAsync(async (req, res, next) => {
   const { user } = req;
-  const { userId } = req.params;
-  if (user.dataValues.id.toString() === userId) {
+  const { userId: userIdToBlock } = req.params;
+  if (user.dataValues.id.toString() === userIdToBlock) {
     return next(new AppError("You can't block yourself", 400));
   }
 
-  const userToBlock = await User.findByPk(userId);
+  const userToBlock = await User.findByPk(userIdToBlock);
 
   if (!userToBlock) {
     return next(new AppError('There is no user with such id', 404));
   }
 
-  const blockList = await BlockList.findOne({ where: { userId: user.dataValues.id } });
+  const blockList = await user.getBlocker();
 
-  if (
-    !blockList ||
-    !blockList.dataValues?.blockedUsers.includes(userToBlock.dataValues.id.toString())
-  ) {
+  if (!blockList.find((blockedUser) => blockedUser.dataValues.id.toString() === userIdToBlock)) {
     return next(new AppError('This user is not blocked', 400));
   }
 
-  blockList.dataValues.blockedUsers = blockList.dataValues.blockedUsers.filter(
-    (blockedId) => blockedId !== userToBlock,
-  );
-  await blockList.save();
+  user.removeBlocker(userIdToBlock);
+
+  await user.save();
 
   res.status(200).json({ message: 'User was unblocked successfully' });
 });

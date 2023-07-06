@@ -10,16 +10,15 @@ const { sequelize, Sequelize } = require('../db/db.config');
 const findIfConversationExists = (arr1, arr2) => {
   const map = {};
   for (let i = 0; i < arr1.length; i += 1) {
-    if (arr1[i].dataValues.conversations[0]) {
-      map[arr1[i].dataValues.conversations[0].dataValues.id] = true;
-    }
+    map[arr1[i].dataValues.conversationId] = true;
   }
 
   for (let i = 0; i < arr2.length; i += 1) {
-    if (map[arr2[i].dataValues.conversations[0]?.dataValues.id]) {
-      return map[arr2[i].dataValues.conversations[0].dataValues.id];
+    if (map[arr2[i].dataValues.conversationId]) {
+      return map[arr2[i].dataValues.conversationId];
     }
   }
+
   return false;
 };
 
@@ -28,15 +27,15 @@ exports.getAllConversations = catchAsync(async (req, res, next) => {
 
   const participants = await Participant.findAll({
     where: {
-      user_id: user.id,
+      userId: user.id,
     },
     include: {
       model: Conversation,
-      attributes: ['id', 'title', 'type', 'creator_id'],
+      attributes: ['id', 'title', 'type', 'creatorId'],
       include: {
         model: Message,
         order: [['createdAt', 'DESC']],
-        attributes: ['id', 'messageType', 'message', 'sender_id'],
+        attributes: ['id', 'messageType', 'message', 'senderId'],
         limit: 1,
       },
     },
@@ -53,7 +52,7 @@ exports.getAllConversations = catchAsync(async (req, res, next) => {
 
   // eslint-disable-next-line max-len
   const deletedConversationsForUser = await DeletedConversation.findAll({
-    where: { user_id: user.dataValues.id },
+    where: { userId: user.dataValues.id },
   });
   const deletedIds = deletedConversationsForUser.map((conversation) => conversation.id);
   return res.status(200).json({
@@ -81,8 +80,8 @@ exports.createConversation = catchAsync(async (req, res, next) => {
   }
 
   const participantsArr = await Promise.all([
-    Participant.findAll({ where: { user_id: user.id }, include: [{ model: Conversation }] }),
-    Participant.findAll({ where: { user_id: receiver.id }, include: [{ model: Conversation }] }),
+    Participant.findAll({ where: { userId: user.dataValues.id } }),
+    Participant.findAll({ where: { userId: receiver.dataValues.id } }),
   ]);
 
   const conversationId = findIfConversationExists(...participantsArr);
@@ -91,26 +90,24 @@ exports.createConversation = catchAsync(async (req, res, next) => {
     return next(new AppError('Conversation with this user is already exists', 400));
   }
 
+  const blockList = await receiver.getBlocker();
+
+  if (
+    blockList.find(
+      (blockedUser) => blockedUser.dataValues.id.toString() === user.dataValues.id.toString(),
+    )
+  ) {
+    return next(new AppError('You were blocked by this user', 400));
+  }
+
   await sequelize.transaction(async () => {
-    const conversation = await Conversation.create({ type: 'private', creator_id: user.id });
-    const participants = await Promise.all([
-      Participant.create({
-        user_id: user.id,
-      }),
-      Participant.create({
-        user_id: receiverId,
-      }),
-    ]);
-    // eslint-disable-next-line max-len
-    await participants[0].addConversation(
-      conversation.dataValues.id,
-      participants[0].dataValues.id,
-    );
-    // eslint-disable-next-line max-len
-    await participants[1].addConversation(
-      conversation.dataValues.id,
-      participants[1].dataValues.id,
-    );
+    const conversation = await Conversation.create({
+      type: 'private',
+      creatorId: user.dataValues.id,
+    });
+    conversation.addUser(user.dataValues.id, { through: { role: 'user' } });
+    conversation.addUser(receiver.dataValues.id, { through: { role: 'user' } });
+    await conversation.save();
   });
 
   res.status(201).json({
@@ -130,7 +127,7 @@ exports.deleteConversation = catchAsync(async (req, res, next) => {
 
   // eslint-disable-next-line max-len
   const participants = await Participant.findAll({
-    where: { user_id: user.id },
+    where: { userId: user.id },
     include: [{ model: Conversation }],
   });
   const participantInConversation = participants.find(
@@ -146,9 +143,9 @@ exports.deleteConversation = catchAsync(async (req, res, next) => {
   const isDeleted = await DeletedConversation.findOne({
     where: Sequelize.and(
       {
-        user_id: user.dataValues.id,
+        userId: user.dataValues.id,
       },
-      { conversation_id: conversationId },
+      { conversationId: conversationId },
     ),
   });
 
@@ -159,8 +156,8 @@ exports.deleteConversation = catchAsync(async (req, res, next) => {
   if (participantInConversation) {
     // eslint-disable-next-line max-len
     await DeletedConversation.create({
-      user_id: user.dataValues.id,
-      conversation_id: conversationId,
+      userId: user.dataValues.id,
+      conversationId: conversationId,
     });
   }
 

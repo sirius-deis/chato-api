@@ -5,7 +5,6 @@ const DeleteMessage = require('../models/deletedMessage.models');
 const { Sequelize } = require('../db/db.config');
 const Participant = require('../models/participant.models');
 const Conversation = require('../models/conversation.models');
-const BlockList = require('../models/blockList.models');
 
 const filterDeletedMessages = async (userId, ...messages) => {
   const deletedMessages = await DeleteMessage.findAll({
@@ -93,26 +92,26 @@ exports.addMessage = catchAsync(async (req, res, next) => {
     return next(new AppError('There is no conversation with such id for this user', 404));
   }
 
-  if (conversation.dataValues.type === 'private') {
-    const blockList = await BlockList.findOne({
-      where: Sequelize.and({
-        user_id: participants.find(
-          (participant) => participant.dataValues.user_id !== user.dataValues.id,
-        ).dataValues.user_id,
-        blockedUsers: {
-          $contains: [
-            participants
-              .find((participant) => participant.dataValues.user_id === user.dataValues.id)
-              .dataValues.user_id.toString(),
-          ],
-        },
-      }),
-    });
+  // if (conversation.dataValues.type === 'private') {
+  //   const blockList = await BlockList.findOne({
+  //     where: Sequelize.and({
+  //       user_id: participants.find(
+  //         (participant) => participant.dataValues.user_id !== user.dataValues.id,
+  //       ).dataValues.user_id,
+  //       blockedUsers: {
+  //         $contains: [
+  //           participants
+  //             .find((participant) => participant.dataValues.user_id === user.dataValues.id)
+  //             .dataValues.user_id.toString(),
+  //         ],
+  //       },
+  //     }),
+  //   });
 
-    if (blockList) {
-      return next(new AppError('You were blocked by selected user', 400));
-    }
-  }
+  //   if (blockList) {
+  //     return next(new AppError('You were blocked by selected user', 400));
+  //   }
+  // }
 
   await Message.create({
     conversation_id: conversationId,

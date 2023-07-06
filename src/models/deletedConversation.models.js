@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../db/db.config');
 
-const DeletedConversation = sequelize.define('deleted_conversation', {
+const DeletedConversation = sequelize.define('deleted_conversations', {
   id: {
     type: DataTypes.INTEGER,
     primaryKey: true,

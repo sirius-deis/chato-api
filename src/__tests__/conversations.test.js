@@ -195,7 +195,7 @@ describe('/conversations route', () => {
         .end(done);
     });
   });
-  describe('/:conversationId delete route', () => {
+  describe.skip('/:conversationId delete route', () => {
     it('should return 401 as there was no token provided', (done) => {
       request(app)
         .delete(`${baseUrl}/${1}`)

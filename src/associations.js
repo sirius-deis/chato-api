@@ -6,7 +6,6 @@ const Participant = require('./models/participant.models');
 const Message = require('./models/message.models');
 const DeletedConversation = require('./models/deletedConversation.models');
 const DeletedMessage = require('./models/deletedMessage.models');
-const BlockList = require('./models/blockList.models');
 
 User.hasOne(ActivateToken, { onDelete: 'cascade', foreignKey: 'userId' });
 ActivateToken.belongsTo(User, { foreignKey: 'userId' });
@@ -40,8 +39,16 @@ DeletedMessage.belongsTo(User, {
 Message.hasOne(DeletedMessage, { onDelete: 'cascade', foreignKey: 'messageId' });
 DeletedMessage.belongsTo(Message, { foreignKey: 'messageId' });
 
-User.hasOne(BlockList, { onDelete: 'cascade', foreignKey: 'userId' });
-BlockList.belongsTo(User, { foreignKey: 'userId' });
+User.belongsToMany(User, {
+  as: 'blocker',
+  through: 'block_list',
+  foreignKey: 'userId',
+});
+User.belongsToMany(User, {
+  as: 'blocked',
+  through: 'block_list',
+  foreignKey: 'blockedUserId',
+});
 
-User.belongsToMany(User, { as: 'parents', through: 'user_contacts', foreignKey: 'userId' });
-User.belongsToMany(User, { as: 'children', through: 'user_contacts', foreignKey: 'contactId' });
+User.belongsToMany(User, { as: 'owner', through: 'user_contacts', foreignKey: 'userId' });
+User.belongsToMany(User, { as: 'contact', through: 'user_contacts', foreignKey: 'contactId' });
