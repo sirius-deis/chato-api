@@ -121,19 +121,14 @@ exports.deleteConversation = catchAsync(async (req, res, next) => {
     return next(new AppError('There is no such conversation', 404));
   }
 
-  // eslint-disable-next-line max-len
-  const participants = await Participant.findAll({
-    where: { userId: user.id },
-    include: [{ model: Conversation }],
-  });
-  const participantInConversation = participants.find(
-    // eslint-disable-next-line max-len
-    (participant) =>
-      participant.dataValues.conversations[0].dataValues.id === conversation.dataValues.id,
-  );
+  const participants = await conversation.getUsers();
 
-  if (!participantInConversation) {
-    return next(new AppError('There is no such conversation for selected user', 401));
+  if (
+    !participants.find(
+      (participant) => participant.dataValues.id.toString() === user.dataValues.id.toString(),
+    )
+  ) {
+    return next(new AppError('There is no such conversation for selected user', 400));
   }
 
   const isDeleted = await DeletedConversation.findOne({
@@ -149,13 +144,10 @@ exports.deleteConversation = catchAsync(async (req, res, next) => {
     return next(new AppError('This conversation is already deleted', 400));
   }
 
-  if (participantInConversation) {
-    // eslint-disable-next-line max-len
-    await DeletedConversation.create({
-      userId: user.dataValues.id,
-      conversationId: conversationId,
-    });
-  }
+  await DeletedConversation.create({
+    userId: user.dataValues.id,
+    conversationId: conversationId,
+  });
 
   res.status(204).json({
     message: 'Conversation was deleted successfully',

@@ -229,7 +229,7 @@ describe('/conversations route', () => {
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token1}`)
         .send()
-        .expect(401)
+        .expect(400)
         .expect('Content-Type', /json/)
         .expect((res) => {
           expect(res.body.message).toBe('There is no such conversation for selected user');
