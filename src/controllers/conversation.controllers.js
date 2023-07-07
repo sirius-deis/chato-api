@@ -6,6 +6,7 @@ const Message = require('../models/message.models');
 const User = require('../models/user.models');
 const Participant = require('../models/participant.models');
 const { sequelize, Sequelize } = require('../db/db.config');
+const DeletedMessage = require('../models/deletedMessage.models');
 
 const findIfConversationExists = (arr1, arr2) => {
   const map = {};
@@ -115,7 +116,25 @@ exports.deleteConversation = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { conversationId } = req.params;
 
-  const conversation = await Conversation.findByPk(conversationId);
+  const conversation = await Conversation.findByPk(conversationId, {
+    include: {
+      model: Message,
+    },
+  });
+
+  const operations = conversation.dataValues.messages.map((message) =>
+    DeletedMessage.findOrCreate({
+      where: {
+        messageId: message.dataValues.id,
+      },
+      defaults: {
+        messageId: message.dataValues.id,
+        userId: user.dataValues.id,
+      },
+    }),
+  );
+
+  await Promise.all(operations);
 
   if (!conversation) {
     return next(new AppError('There is no such conversation', 404));

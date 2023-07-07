@@ -86,7 +86,7 @@ exports.addMessage = catchAsync(async (req, res, next) => {
     return next(new AppError('There is no conversation with such id', 404));
   }
 
-  const participants = await conversation.getParticipants();
+  const participants = await conversation.getUsers();
 
   if (!participants.length) {
     return next(new AppError('There is no conversation with such id for this user', 404));
@@ -114,8 +114,8 @@ exports.addMessage = catchAsync(async (req, res, next) => {
   // }
 
   await Message.create({
-    conversation_id: conversationId,
-    sender_id: user.dataValues.id,
+    conversationId: conversationId,
+    senderId: user.dataValues.id,
     message,
   });
 
