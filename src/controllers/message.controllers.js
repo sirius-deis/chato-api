@@ -74,15 +74,26 @@ exports.getMessages = catchAsync(async (req, res, next) => {
 
 exports.getMessage = catchAsync(async (req, res, next) => {
   const { user } = req;
-  const { messageId } = req.params;
+  const { conversationId, messageId } = req.params;
 
-  const message = await Message.findByPk(messageId);
+  const message = await Message.findOne({
+    where: Sequelize.and(
+      {
+        id: messageId,
+      },
+      { conversationId },
+    ),
+  });
 
   if (!message) {
     return next(new AppError('There is no message with such id', 404));
   }
 
-  if (user.dataValues.id !== message.dataValues.senderId) {
+  if (
+    !(await (await message.getConversation()).getUsers()).find(
+      (participant) => participant.dataValues.id === user.dataValues.id,
+    )
+  ) {
     return next(new AppError('This message is not your', 403));
   }
 
@@ -95,7 +106,7 @@ exports.getMessage = catchAsync(async (req, res, next) => {
   res.status(200).json({
     message: 'Your message was retrieved successfully',
     data: {
-      message: messagesWithoutDeleted[0],
+      message: messagesWithoutDeleted[0].dataValues,
     },
   });
 });
@@ -167,6 +178,7 @@ exports.editMessage = catchAsync(async (req, res, next) => {
   }
 
   foundMessage.message = message;
+  foundMessage.isEdited = true;
 
   await foundMessage.save();
 

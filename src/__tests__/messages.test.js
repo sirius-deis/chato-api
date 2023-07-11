@@ -8,8 +8,6 @@ const Conversation = require('../models/conversation.models');
 const Message = require('../models/message.models');
 const DeletedMessage = require('../models/deletedMessage.models');
 
-const baseUrl = '/api/v1/messages';
-
 const createUser = async (text) =>
   await User.create({
     email: `${text}@test.com`,
@@ -45,7 +43,8 @@ describe('/messages route', () => {
     const user2 = await createUser('test2');
     const user3 = await createUser('test3');
     const conversation1 = await createConversation(user1.dataValues.id, user2.dataValues.id);
-    await createConversation(user1.dataValues.id, user3.dataValues.id);
+    const conversation2 = await createConversation(user1.dataValues.id, user3.dataValues.id);
+    const conversation3 = await createConversation(user2.dataValues.id, user3.dataValues.id);
     await createMessage(conversation1.dataValues.id, user1.dataValues.id, 'message 1');
     await createMessage(conversation1.dataValues.id, user2.dataValues.id, 'message 2');
     await createMessage(conversation1.dataValues.id, user1.dataValues.id, 'message 3');
@@ -54,7 +53,14 @@ describe('/messages route', () => {
       user1.dataValues.id,
       'message 4',
     );
+    await createMessage(conversation3.dataValues.id, user3.dataValues.id, 'message 4');
+    const message5 = await createMessage(
+      conversation2.dataValues.id,
+      user1.dataValues.id,
+      'message 5',
+    );
     await DeletedMessage.create({ userId: user1.dataValues.id, messageId: message4.dataValues.id });
+    await DeletedMessage.create({ userId: user1.dataValues.id, messageId: message5.dataValues.id });
     const res = await request(app)
       .post('/api/v1/users/login')
       .send({ email: 'test1@test.com', password: 'password' });
@@ -80,7 +86,7 @@ describe('/messages route', () => {
     });
     it('should return 404 as there are no message for such conversation', (done) => {
       request(app)
-        .get('/api/v1/conversations/2/messages')
+        .get('/api/v1/conversations/100/messages')
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token1}`)
@@ -108,5 +114,78 @@ describe('/messages route', () => {
         .end(done);
     });
   });
-  describe('get message by id', () => {});
+  describe('get message by id', () => {
+    it('should return 401 as there is no token provided', (done) => {
+      request(app)
+        .get('/api/v1/conversations/1/messages/1')
+        .type('json')
+        .set('Accept', 'application/json')
+        .send()
+        .expect(401)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('Sign in before accessing this route');
+        })
+        .end(done);
+    });
+    it('should return 404 as there is no message with such id', (done) => {
+      request(app)
+        .get('/api/v1/conversations/1/messages/1000')
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token1}`)
+        .send()
+        .expect(404)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('There is no message with such id');
+        })
+        .end(done);
+    });
+    it("should return 403 as current user doesn't have access to this message", (done) => {
+      request(app)
+        .get('/api/v1/conversations/3/messages/5')
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token1}`)
+        .send()
+        .expect(403)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('This message is not your');
+        })
+        .end(done);
+    });
+    it('should return 404 as message was deleted', (done) => {
+      request(app)
+        .get('/api/v1/conversations/2/messages/6')
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token1}`)
+        .send()
+        .expect(404)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('There is no message with such id');
+        })
+        .end(done);
+    });
+    it('should return 200 and return message', (done) => {
+      request(app)
+        .get('/api/v1/conversations/1/messages/2')
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token1}`)
+        .send()
+        .expect(200)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('Your message was retrieved successfully');
+          expect(res.body.data.message.id).toBe(2);
+          expect(res.body.data.message.conversationId).toBe(1);
+          expect(res.body.data.message.message).toBe('message 2');
+        })
+        .end(done);
+    });
+  });
 });
