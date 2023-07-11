@@ -6,6 +6,7 @@ const { redisConnect, redisDisconnect } = require('../db/redis.config');
 const User = require('../models/user.models');
 const Conversation = require('../models/conversation.models');
 const Message = require('../models/message.models');
+const DeletedMessage = require('../models/deletedMessage.models');
 
 const baseUrl = '/api/v1/messages';
 
@@ -48,6 +49,12 @@ describe('/messages route', () => {
     await createMessage(conversation1.dataValues.id, user1.dataValues.id, 'message 1');
     await createMessage(conversation1.dataValues.id, user2.dataValues.id, 'message 2');
     await createMessage(conversation1.dataValues.id, user1.dataValues.id, 'message 3');
+    const message4 = await createMessage(
+      conversation1.dataValues.id,
+      user1.dataValues.id,
+      'message 4',
+    );
+    await DeletedMessage.create({ userId: user1.dataValues.id, messageId: message4.dataValues.id });
     const res = await request(app)
       .post('/api/v1/users/login')
       .send({ email: 'test1@test.com', password: 'password' });
@@ -60,7 +67,7 @@ describe('/messages route', () => {
   describe('get all messages controller', () => {
     it('should return 401 as there is no token provided', (done) => {
       request(app)
-        .get(baseUrl)
+        .get('/api/v1/conversations/1/messages')
         .type('json')
         .set('Accept', 'application/json')
         .send()
@@ -73,14 +80,30 @@ describe('/messages route', () => {
     });
     it('should return 404 as there are no message for such conversation', (done) => {
       request(app)
-        .get(baseUrl)
+        .get('/api/v1/conversations/2/messages')
         .type('json')
         .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token1}`)
         .send()
-        .expect(401)
+        .expect(404)
         .expect('Content-Type', /json/)
         .expect((res) => {
-          expect(res.body.message).toBe('Sign in before accessing this route');
+          expect(res.body.message).toBe('There are no messages for such conversation');
+        })
+        .end(done);
+    });
+    it('should return 200 and return messages', (done) => {
+      request(app)
+        .get('/api/v1/conversations/1/messages')
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token1}`)
+        .send()
+        .expect(200)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('Your messages were retrieved successfully');
+          expect(res.body.data.messages.length).toBe(3);
         })
         .end(done);
     });

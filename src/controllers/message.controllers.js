@@ -3,7 +3,6 @@ const AppError = require('../utils/appError');
 const Message = require('../models/message.models');
 const DeletedMessage = require('../models/deletedMessage.models');
 const { Sequelize } = require('../db/db.config');
-const Participant = require('../models/participant.models');
 const Conversation = require('../models/conversation.models');
 
 const filterDeletedMessages = async (userId, ...messages) => {
@@ -28,15 +27,14 @@ exports.getMessages = catchAsync(async (req, res, next) => {
   const { conversationId } = req.params;
 
   const messages = await Message.findAll({
-    where: Sequelize.and(
-      {
-        senderId: user.dataValues.id,
-      },
-      {
-        conversationId: conversationId,
-      },
-    ),
+    where: {
+      conversationId: conversationId,
+    },
   });
+
+  if (messages.length < 1) {
+    return next(new AppError('There are no messages for such conversation', 404));
+  }
 
   const messagesWithoutDeleted = await filterDeletedMessages(user.dataValues.id, ...messages);
 
@@ -73,7 +71,7 @@ exports.getMessage = catchAsync(async (req, res, next) => {
   }
 
   res.status(200).json({
-    message: 'Your messages was retrieved successfully',
+    message: 'Your message was retrieved successfully',
     data: {
       message: messagesWithoutDeleted[0],
     },

@@ -9,6 +9,18 @@ const User = require('../models/user.models');
 
 const baseUrl = '/api/v1/users';
 
+const createUser = async (text, { isActive = false, isBlocked = false, role = 'user' } = {}) =>
+  await User.create({
+    email: `${text}@test.com`,
+    password: 'password',
+    firstName: text,
+    lastName: text,
+    bio: text,
+    isActive,
+    isBlocked,
+    role,
+  });
+
 describe('/users route', () => {
   let token;
   let token2;
@@ -20,42 +32,13 @@ describe('/users route', () => {
     await sequelize.authenticate();
     await sequelize.sync({ force: true });
     await redisConnect();
-    await User.create({
-      email: 'test2@test.com',
-      password: 'password',
-      firstName: 'test2',
-      lastName: 'test2',
-      bio: 'test2',
-      isActive: true,
-    });
-    await User.create({ email: 'test3@test.com', password: 'password' });
-    await User.create({
-      email: 'test4@test.com',
-      password: 'password',
-      isActive: true,
-      isBlocked: true,
-    });
-    await User.create({
-      email: 'test5@test.com',
-      password: 'password',
-      isActive: true,
-    });
-    await User.create({
-      email: 'test6@test.com',
-      password: 'password',
-      isActive: true,
-    });
-    await User.create({
-      email: 'test7@test.com',
-      password: 'password',
-      isActive: true,
-    });
-    await User.create({
-      email: 'test8@test.com',
-      password: 'password',
-      isActive: true,
-      role: 'admin',
-    });
+    await createUser('test2', { isActive: true });
+    await createUser('test3');
+    await createUser('test4', { isActive: true, isBlocked: true });
+    await createUser('test5', { isActive: true });
+    await createUser('test6', { isActive: true });
+    await createUser('test7', { isActive: true });
+    await createUser('test8', { isActive: true, role: 'admin' });
   });
   afterAll(async () => {
     await sequelize.close();
@@ -938,7 +921,7 @@ describe('/users route', () => {
   describe('/block route', () => {
     it('should return 401 as there is no token', (done) => {
       request(app)
-        .patch(`${baseUrl}/block/1`)
+        .patch(`${baseUrl}/1/block`)
         .type('json')
         .set('Accept', 'application/json')
         .send({})
@@ -951,7 +934,7 @@ describe('/users route', () => {
     });
     it('should return 400 as user is trying to block himself', (done) => {
       request(app)
-        .patch(`${baseUrl}/block/6`)
+        .patch(`${baseUrl}/6/block`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
@@ -965,7 +948,7 @@ describe('/users route', () => {
     });
     it('should return 404 as there is no such user', (done) => {
       request(app)
-        .patch(`${baseUrl}/block/100`)
+        .patch(`${baseUrl}/100/block`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
@@ -979,7 +962,7 @@ describe('/users route', () => {
     });
     it('should return 200 and block user', (done) => {
       request(app)
-        .patch(`${baseUrl}/block/1`)
+        .patch(`${baseUrl}/1/block`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
@@ -993,7 +976,7 @@ describe('/users route', () => {
     });
     it('should return 400 trying to block a blocked user', (done) => {
       request(app)
-        .patch(`${baseUrl}/block/1`)
+        .patch(`${baseUrl}/1/block`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
@@ -1007,7 +990,7 @@ describe('/users route', () => {
     });
     it('should return 204 and block a second user user', (done) => {
       request(app)
-        .patch(`${baseUrl}/block/2`)
+        .patch(`${baseUrl}/2/block`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
@@ -1023,7 +1006,7 @@ describe('/users route', () => {
   describe('/unblock route', () => {
     it('should return 401 as there is no token provided', (done) => {
       request(app)
-        .patch(`${baseUrl}/unblock/1`)
+        .patch(`${baseUrl}/1/unblock`)
         .set('Accept', 'application/json')
         .send()
         .expect(401)
@@ -1035,7 +1018,7 @@ describe('/users route', () => {
     });
     it("should return 400 as user can't block himself", (done) => {
       request(app)
-        .patch(`${baseUrl}/unblock/6`)
+        .patch(`${baseUrl}/6/unblock`)
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
         .send()
@@ -1048,7 +1031,7 @@ describe('/users route', () => {
     });
     it('should return 404 as there is no such user', (done) => {
       request(app)
-        .patch(`${baseUrl}/unblock/100`)
+        .patch(`${baseUrl}/100/unblock`)
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
         .send()
@@ -1061,7 +1044,7 @@ describe('/users route', () => {
     });
     it('should return 400 as there is no such user blocked', (done) => {
       request(app)
-        .patch(`${baseUrl}/unblock/5`)
+        .patch(`${baseUrl}/5/unblock`)
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
         .send()
@@ -1074,7 +1057,7 @@ describe('/users route', () => {
     });
     it('should return 400 as user with such id is not blocked', (done) => {
       request(app)
-        .patch(`${baseUrl}/unblock/7`)
+        .patch(`${baseUrl}/7/unblock`)
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
         .send()
@@ -1087,7 +1070,7 @@ describe('/users route', () => {
     });
     it('should return 200 and unblock user', (done) => {
       request(app)
-        .patch(`${baseUrl}/unblock/1`)
+        .patch(`${baseUrl}/1/unblock`)
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token7}`)
         .send()
