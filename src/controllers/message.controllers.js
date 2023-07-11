@@ -4,6 +4,7 @@ const Message = require('../models/message.models');
 const DeletedMessage = require('../models/deletedMessage.models');
 const { Sequelize } = require('../db/db.config');
 const Conversation = require('../models/conversation.models');
+const MessageReaction = require('../models/messageReaction.models');
 
 const filterDeletedMessages = async (userId, ...messages) => {
   const deletedMessages = await DeletedMessage.findAll({
@@ -148,9 +149,14 @@ exports.addMessage = catchAsync(async (req, res, next) => {
   const repliedMessage = await Message.findByPk(repliedMessageId);
 
   const deletedMessage = await DeletedMessage.findOne({
-    where: {
-      messageId: repliedMessageId,
-    },
+    where: Sequelize.and(
+      {
+        userId: user.dataValues.id,
+      },
+      {
+        messageId: repliedMessageId,
+      },
+    ),
   });
 
   if (!repliedMessage || deletedMessage) {
@@ -247,4 +253,46 @@ exports.unsendMessage = catchAsync(async (req, res, next) => {
   await foundMessage.destroy();
 
   res.status(204).send();
+});
+
+exports.reactOnMessage = catchAsync(async (req, res, next) => {
+  const { user } = req;
+  const { conversationId, messageId } = req.params;
+  const { reaction } = req.body;
+
+  const foundMessage = await Message.findOne({
+    where: Sequelize.and({
+      id: messageId,
+      conversationId: conversationId,
+      senderId: user.dataValues.id,
+    }),
+  });
+
+  if (!foundMessage) {
+    return next(new AppError('There is no such message to react to', 404));
+  }
+
+  const messageReaction = await MessageReaction.findOne({
+    where: {
+      userId: user.dataValues.id,
+      messageId,
+    },
+  });
+
+  if (messageReaction) {
+    if (messageReaction.dataValues.reaction === reaction) {
+      await messageReaction.destroy();
+    } else {
+      messageReaction.reaction = reaction;
+    }
+    res.status(202).json({ message: 'Reaction was updated successfully' });
+  } else {
+    await MessageReaction.create({
+      userId: user.dataValues.id,
+      messageId,
+      reaction,
+    });
+
+    res.status(201).send();
+  }
 });
