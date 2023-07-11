@@ -114,7 +114,7 @@ exports.getMessage = catchAsync(async (req, res, next) => {
 exports.addMessage = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { conversationId } = req.params;
-  const { message } = req.body;
+  const { message, repliedMessageId } = req.body;
 
   const conversation = await Conversation.findByPk(conversationId);
 
@@ -145,10 +145,19 @@ exports.addMessage = catchAsync(async (req, res, next) => {
     //TODO: add a block list for group chats
   }
 
+  const repliedMessage = await Message.findByPk(repliedMessageId);
+
+  //TODO: add checking if user replies to deleted message
+
+  if (!repliedMessage) {
+    return next(new AppError('There is no message to reply with such id', 400));
+  }
+
   await Message.create({
     conversationId: conversationId,
     senderId: user.dataValues.id,
     message,
+    repliedMessageId,
   });
 
   res.status(201).json({ message: 'Your message was sent successfully' });

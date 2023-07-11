@@ -114,7 +114,7 @@ describe('/messages route', () => {
         .end(done);
     });
   });
-  describe('get message by id', () => {
+  describe('get message by id controller', () => {
     it('should return 401 as there is no token provided', (done) => {
       request(app)
         .get('/api/v1/conversations/1/messages/1')
@@ -188,4 +188,5 @@ describe('/messages route', () => {
         .end(done);
     });
   });
+  describe('add message controller', () => {
 });
