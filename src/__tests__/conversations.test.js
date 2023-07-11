@@ -4,6 +4,8 @@ const app = require('../app');
 const { sequelize } = require('../db/db.config');
 const { redisConnect, redisDisconnect } = require('../db/redis.config');
 const User = require('../models/user.models');
+const Conversation = require('../models/conversation.models');
+const DeletedConversation = require('../models/deletedConversation.models');
 
 const baseUrl = '/api/v1/conversations';
 
@@ -15,7 +17,7 @@ describe('/conversations route', () => {
     await sequelize.authenticate();
     await sequelize.sync({ force: true });
     await redisConnect();
-    await User.create({
+    const user1 = await User.create({
       email: 'test1@test.com',
       password: 'password',
       firstName: 'test1',
@@ -42,11 +44,32 @@ describe('/conversations route', () => {
     await User.create({
       email: 'test4@test.com',
       password: 'password',
-      firstName: 'test3',
-      lastName: 'test3',
-      bio: 'test3',
+      firstName: 'test4',
+      lastName: 'test4',
+      bio: 'test4',
       isActive: true,
     });
+    const user5 = await User.create({
+      email: 'test5@test.com',
+      password: 'password',
+      firstName: 'test5',
+      lastName: 'test5',
+      bio: 'test5',
+      isActive: true,
+    });
+    const conversation = await Conversation.create({
+      type: 'private',
+      creatorId: user1.dataValues.id,
+      title: undefined,
+    });
+    conversation.addUser(user1.dataValues.id, { through: { role: 'user' } });
+    conversation.addUser(user5.dataValues.id, { through: { role: 'user' } });
+    await conversation.save();
+    await DeletedConversation.create({
+      userId: user1.dataValues.id,
+      conversationId: conversation.dataValues.id,
+    });
+
     const res = await request(app)
       .post('/api/v1/users/login')
       .send({ email: 'test1@test.com', password: 'password' });
@@ -222,9 +245,9 @@ describe('/conversations route', () => {
         })
         .end(done);
     });
-    it('should return 401 as there is no conversation for this user', (done) => {
+    it('should return 400 as there is no conversation for this user', (done) => {
       request(app)
-        .delete(`${baseUrl}/${2}`)
+        .delete(`${baseUrl}/${3}`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token1}`)
@@ -238,7 +261,7 @@ describe('/conversations route', () => {
     });
     it('should return 204 and delete conversation', (done) => {
       request(app)
-        .delete(`${baseUrl}/${1}`)
+        .delete(`${baseUrl}/${2}`)
         .type('json')
         .set('Authorization', `Bearer ${token1}`)
         .send()
@@ -247,7 +270,7 @@ describe('/conversations route', () => {
     });
     it('should return 400 as conversation with provided id for current user is already deleted', (done) => {
       request(app)
-        .delete(`${baseUrl}/${1}`)
+        .delete(`${baseUrl}/${2}`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token1}`)

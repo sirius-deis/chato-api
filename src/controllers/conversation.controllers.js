@@ -1,12 +1,12 @@
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 const Conversation = require('../models/conversation.models');
-const DeletedConversation = require('../models/deletedConversation.models');
 const Message = require('../models/message.models');
 const User = require('../models/user.models');
 const Participant = require('../models/participant.models');
 const { sequelize, Sequelize } = require('../db/db.config');
 const DeletedMessage = require('../models/deletedMessage.models');
+const DeletedConversation = require('../models/deletedConversation.models');
 
 const findIfConversationExists = (arr1, arr2) => {
   const map = {};
@@ -16,7 +16,7 @@ const findIfConversationExists = (arr1, arr2) => {
 
   for (let i = 0; i < arr2.length; i += 1) {
     if (map[arr2[i].dataValues.conversationId]) {
-      return map[arr2[i].dataValues.conversationId];
+      return arr2[i].dataValues.conversationId;
     }
   }
 
@@ -49,12 +49,14 @@ exports.getAllConversations = catchAsync(async (req, res, next) => {
   const deletedConversationsForUser = await DeletedConversation.findAll({
     where: { userId: user.dataValues.id },
   });
-  const deletedIds = deletedConversationsForUser.map((conversation) => conversation.id);
+  const deletedIds = deletedConversationsForUser.map((conversation) =>
+    conversation.dataValues.id.toString(),
+  );
   return res.status(200).json({
     message: 'Conversations were found',
     data: {
       conversations: conversations.filter(
-        (conversation) => !deletedIds.includes(conversation.dataValues.id),
+        (conversation) => !deletedIds.includes(conversation.dataValues.id.toString()),
       ),
     },
   });
@@ -80,12 +82,6 @@ exports.createConversation = catchAsync(async (req, res, next) => {
     Participant.findAll({ where: { userId: receiver.dataValues.id } }),
   ]);
 
-  const conversationId = findIfConversationExists(...participantsArr);
-
-  if (conversationId) {
-    return next(new AppError('Conversation with this user is already exists', 400));
-  }
-
   const blockList = await receiver.getBlocker();
 
   if (
@@ -94,6 +90,24 @@ exports.createConversation = catchAsync(async (req, res, next) => {
     )
   ) {
     return next(new AppError('You were blocked by this user', 400));
+  }
+
+  const conversationId = findIfConversationExists(...participantsArr);
+
+  if (conversationId) {
+    const deletedConversation = await DeletedConversation.findOne({
+      where: {
+        conversationId,
+        userId: user.dataValues.id,
+      },
+    });
+    if (!deletedConversation) {
+      return next(new AppError('Conversation with this user is already exists', 400));
+    }
+    await deletedConversation.destroy();
+    return res.status(200).json({
+      message: 'Conversation was created successfully',
+    });
   }
 
   await sequelize.transaction(async () => {
@@ -122,26 +136,11 @@ exports.deleteConversation = catchAsync(async (req, res, next) => {
     },
   });
 
-  const operations = conversation.dataValues.messages.map((message) =>
-    DeletedMessage.findOrCreate({
-      where: {
-        messageId: message.dataValues.id,
-      },
-      defaults: {
-        messageId: message.dataValues.id,
-        userId: user.dataValues.id,
-      },
-    }),
-  );
-
-  await Promise.all(operations);
-
   if (!conversation) {
     return next(new AppError('There is no such conversation', 404));
   }
 
   const participants = await conversation.getUsers();
-
   if (
     !participants.find(
       (participant) => participant.dataValues.id.toString() === user.dataValues.id.toString(),
@@ -162,6 +161,20 @@ exports.deleteConversation = catchAsync(async (req, res, next) => {
   if (isDeleted) {
     return next(new AppError('This conversation is already deleted', 400));
   }
+
+  const deletedMessagePromises = conversation.dataValues.messages.map((message) =>
+    DeletedMessage.findOrCreate({
+      where: {
+        messageId: message.dataValues.id,
+      },
+      defaults: {
+        messageId: message.dataValues.id,
+        userId: user.dataValues.id,
+      },
+    }),
+  );
+
+  await Promise.all(deletedMessagePromises);
 
   await DeletedConversation.create({
     userId: user.dataValues.id,
