@@ -16,9 +16,8 @@ module.exports = (server) => {
 
     socket.on('client_message', ({ message, conversationId, receiverId }) => {
       if (user.dataValues.id.toString() === receiverId) {
-        const err = new Error('User not found error');
-        err.data = { type: 'user_not_found_error' };
-        return next(err);
+        const err = new Error('');
+        err.data = { type: '' };
       }
       socket.emit('server_message', { senderId: null });
     });

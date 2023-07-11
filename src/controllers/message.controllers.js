@@ -147,9 +147,13 @@ exports.addMessage = catchAsync(async (req, res, next) => {
 
   const repliedMessage = await Message.findByPk(repliedMessageId);
 
-  //TODO: add checking if user replies to deleted message
+  const deletedMessage = await DeletedMessage.findOne({
+    where: {
+      messageId: repliedMessageId,
+    },
+  });
 
-  if (!repliedMessage) {
+  if (!repliedMessage || deletedMessage) {
     return next(new AppError('There is no message to reply with such id', 400));
   }
 
