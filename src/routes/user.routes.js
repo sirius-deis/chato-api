@@ -67,8 +67,8 @@ userRouter.use(isLoggedIn);
 
 userRouter.get('/logout', logout);
 
-userRouter.patch('/block/:userId', blockUser);
-userRouter.patch('/unblock/:userId', unblockUser);
+userRouter.patch('/:userId/block', blockUser);
+userRouter.patch('/:userId/unblock', unblockUser);
 
 userRouter.get('/:userId', getUser);
 

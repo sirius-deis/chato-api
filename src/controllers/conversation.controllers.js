@@ -102,6 +102,7 @@ exports.createConversation = catchAsync(async (req, res, next) => {
         userId: user.dataValues.id,
       },
     });
+
     if (!deletedConversation) {
       return next(new AppError('Conversation with this user is already exists', 400));
     }

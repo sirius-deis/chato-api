@@ -9,6 +9,16 @@ const DeletedConversation = require('../models/deletedConversation.models');
 
 const baseUrl = '/api/v1/conversations';
 
+const createUser = async (text) =>
+  await User.create({
+    email: `${text}@test.com`,
+    password: 'password',
+    firstName: text,
+    lastName: text,
+    bio: text,
+    isActive: true,
+  });
+
 describe('/conversations route', () => {
   let token1;
   let token3;
@@ -17,46 +27,11 @@ describe('/conversations route', () => {
     await sequelize.authenticate();
     await sequelize.sync({ force: true });
     await redisConnect();
-    const user1 = await User.create({
-      email: 'test1@test.com',
-      password: 'password',
-      firstName: 'test1',
-      lastName: 'test1',
-      bio: 'test1',
-      isActive: true,
-    });
-    await User.create({
-      email: 'test2@test.com',
-      password: 'password',
-      firstName: 'test2',
-      lastName: 'test2',
-      bio: 'test2',
-      isActive: true,
-    });
-    await User.create({
-      email: 'test3@test.com',
-      password: 'password',
-      firstName: 'test3',
-      lastName: 'test3',
-      bio: 'test3',
-      isActive: true,
-    });
-    await User.create({
-      email: 'test4@test.com',
-      password: 'password',
-      firstName: 'test4',
-      lastName: 'test4',
-      bio: 'test4',
-      isActive: true,
-    });
-    const user5 = await User.create({
-      email: 'test5@test.com',
-      password: 'password',
-      firstName: 'test5',
-      lastName: 'test5',
-      bio: 'test5',
-      isActive: true,
-    });
+    const user1 = await createUser('test1');
+    await createUser('test2');
+    await createUser('test3');
+    await createUser('test4');
+    const user5 = await createUser('test5');
     const conversation = await Conversation.create({
       type: 'private',
       creatorId: user1.dataValues.id,

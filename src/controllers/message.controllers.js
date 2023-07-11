@@ -1,21 +1,26 @@
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 const Message = require('../models/message.models');
-const DeleteMessage = require('../models/deletedMessage.models');
+const DeletedMessage = require('../models/deletedMessage.models');
 const { Sequelize } = require('../db/db.config');
 const Participant = require('../models/participant.models');
 const Conversation = require('../models/conversation.models');
 
 const filterDeletedMessages = async (userId, ...messages) => {
-  const deletedMessages = await DeleteMessage.findAll({
-    where: Sequelize.and({
-      user_id: userId,
-    }),
+  const deletedMessages = await DeletedMessage.findAll({
+    where: Sequelize.and(
+      {
+        userId: userId,
+      },
+      {
+        messageId: messages.map((message) => message.dataValues.id.toString()),
+      },
+    ),
   });
 
-  const deletedIds = deletedMessages.map((message) => message.dataValues.message_id);
+  const deletedIds = deletedMessages.map((message) => message.dataValues.messageId.toString());
 
-  return messages.filter((message) => !deletedIds.includes(message.dataValues.id));
+  return messages.filter((message) => !deletedIds.includes(message.dataValues.id.toString()));
 };
 
 exports.getMessages = catchAsync(async (req, res, next) => {
@@ -25,10 +30,10 @@ exports.getMessages = catchAsync(async (req, res, next) => {
   const messages = await Message.findAll({
     where: Sequelize.and(
       {
-        sender_id: user.dataValues.id,
+        senderId: user.dataValues.id,
       },
       {
-        conversation_id: conversationId,
+        conversationId: conversationId,
       },
     ),
   });
@@ -57,11 +62,11 @@ exports.getMessage = catchAsync(async (req, res, next) => {
     return next(new AppError('There is no message with such id', 404));
   }
 
-  if (user.dataValues.id !== message.dataValues.sender_id) {
+  if (user.dataValues.id !== message.dataValues.senderId) {
     return next(new AppError('This message is not your', 403));
   }
 
-  const messagesWithoutDeleted = filterDeletedMessages(user.dataValues.id, message);
+  const messagesWithoutDeleted = await filterDeletedMessages(user.dataValues.id, message);
 
   if (!messagesWithoutDeleted[0]) {
     return next(new AppError('There is no message with such id', 404));
@@ -92,26 +97,22 @@ exports.addMessage = catchAsync(async (req, res, next) => {
     return next(new AppError('There is no conversation with such id for this user', 404));
   }
 
-  // if (conversation.dataValues.type === 'private') {
-  //   const blockList = await BlockList.findOne({
-  //     where: Sequelize.and({
-  //       user_id: participants.find(
-  //         (participant) => participant.dataValues.user_id !== user.dataValues.id,
-  //       ).dataValues.user_id,
-  //       blockedUsers: {
-  //         $contains: [
-  //           participants
-  //             .find((participant) => participant.dataValues.user_id === user.dataValues.id)
-  //             .dataValues.user_id.toString(),
-  //         ],
-  //       },
-  //     }),
-  //   });
+  if (conversation.dataValues.type === 'private') {
+    const receiver = participants.find(
+      (participant) => participant.dataValues.id.toString() !== user.dataValues.id.toString(),
+    );
+    const blockList = await receiver.getBlocker();
 
-  //   if (blockList) {
-  //     return next(new AppError('You were blocked by selected user', 400));
-  //   }
-  // }
+    if (
+      blockList.find(
+        (blockedUser) => blockedUser.dataValues.id.toString() === user.dataValues.id.toString(),
+      )
+    ) {
+      return next(new AppError('You were blocked by selected user', 400));
+    }
+  } else {
+    //TODO: add a block list for group chats
+  }
 
   await Message.create({
     conversationId: conversationId,
@@ -130,13 +131,19 @@ exports.editMessage = catchAsync(async (req, res, next) => {
   const foundMessage = await Message.findOne({
     where: Sequelize.and({
       id: messageId,
-      conversation_id: conversationId,
-      sender_id: user.dataValues.id,
+      conversationId: conversationId,
+      senderId: user.dataValues.id,
     }),
   });
 
   if (!foundMessage) {
     return next(new AppError('There is no such message that you can edit', 404));
+  }
+
+  const messagesWithoutDeleted = await filterDeletedMessages(user.dataValues.id, foundMessage);
+
+  if (!messagesWithoutDeleted[0]) {
+    return next(new AppError('There is no message with such id', 404));
   }
 
   foundMessage.message = message;
@@ -153,8 +160,8 @@ exports.deleteMessage = catchAsync(async (req, res, next) => {
   const foundMessage = await Message.findOne({
     where: Sequelize.and({
       id: messageId,
-      conversation_id: conversationId,
-      sender_id: user.dataValues.id,
+      conversationId: conversationId,
+      senderId: user.dataValues.id,
     }),
   });
 
@@ -162,9 +169,15 @@ exports.deleteMessage = catchAsync(async (req, res, next) => {
     return next(new AppError('There is no such message that you can delete', 404));
   }
 
-  await DeleteMessage.create({
-    message_id: messageId,
-    user_id: user.dataValues.id,
+  const messagesWithoutDeleted = await filterDeletedMessages(user.dataValues.id, foundMessage);
+
+  if (!messagesWithoutDeleted[0]) {
+    return next(new AppError('There is no message with such id', 404));
+  }
+
+  await DeletedMessage.create({
+    messageId: messageId,
+    userId: user.dataValues.id,
   });
 
   res.status(204).send();
@@ -177,13 +190,13 @@ exports.unsendMessage = catchAsync(async (req, res, next) => {
   const foundMessage = await Message.findOne({
     where: Sequelize.and({
       id: messageId,
-      conversation_id: conversationId,
-      sender_id: user.dataValues.id,
+      conversationId: conversationId,
+      senderId: user.dataValues.id,
     }),
   });
 
-  if (!foundMessage) {
-    return next(new AppError('There is no such message that you can delete', 404));
+  if (!foundMessage || foundMessage.dataValues.isRead) {
+    return next(new AppError('There is no such message that you can unsend', 404));
   }
 
   await foundMessage.destroy();
