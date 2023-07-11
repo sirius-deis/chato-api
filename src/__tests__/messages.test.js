@@ -108,4 +108,5 @@ describe('/messages route', () => {
         .end(done);
     });
   });
+  describe('get message by id', () => {});
 });

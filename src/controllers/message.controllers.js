@@ -25,11 +25,33 @@ const filterDeletedMessages = async (userId, ...messages) => {
 exports.getMessages = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { conversationId } = req.params;
+  const { search, date } = req.query;
 
-  const messages = await Message.findAll({
-    where: {
+  const query = [
+    {
       conversationId: conversationId,
     },
+  ];
+
+  if (search) {
+    query.push({
+      message: {
+        [Sequelize.Op.regexp]: `${search}`,
+      },
+    });
+  }
+
+  if (date) {
+    query.push({
+      createdAt: {
+        [Sequelize.Op.gte]: new Date(date),
+      },
+    });
+  }
+
+  const messages = await Message.findAll({
+    where: Sequelize.and(...query),
+    order: [['createdAt', 'DESC']],
   });
 
   if (messages.length < 1) {
