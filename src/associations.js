@@ -31,16 +31,11 @@ Conversation.belongsToMany(User, {
   foreignKey: 'conversationId',
 });
 
-User.hasMany(DeletedMessage, {
-  onDelete: 'cascade',
-  foreignKey: 'userId',
+User.belongsToMany(Message, { through: DeletedMessage, foreignKey: 'userId' });
+Message.belongsToMany(User, {
+  through: DeletedMessage,
+  foreignKey: 'messageId',
 });
-DeletedMessage.belongsTo(User, {
-  foreignKey: 'userId',
-});
-
-Message.hasOne(DeletedMessage, { onDelete: 'cascade', foreignKey: 'messageId' });
-DeletedMessage.belongsTo(Message, { foreignKey: 'messageId' });
 
 User.belongsToMany(User, {
   as: 'blocker',

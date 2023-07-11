@@ -49,8 +49,9 @@ exports.getAllConversations = catchAsync(async (req, res, next) => {
   const deletedConversationsForUser = await DeletedConversation.findAll({
     where: { userId: user.dataValues.id },
   });
-  const deletedIds = deletedConversationsForUser.map((conversation) =>
-    conversation.dataValues.id.toString(),
+  const deletedIds = deletedConversationsForUser.map(
+    (conversation) => conversation.dataValues.id.toString(),
+    // eslint-disable-next-line function-paren-newline
   );
   return res.status(200).json({
     message: 'Conversations were found',
@@ -162,16 +163,18 @@ exports.deleteConversation = catchAsync(async (req, res, next) => {
     return next(new AppError('This conversation is already deleted', 400));
   }
 
-  const deletedMessagePromises = conversation.dataValues.messages.map((message) =>
-    DeletedMessage.findOrCreate({
-      where: {
-        messageId: message.dataValues.id,
-      },
-      defaults: {
-        messageId: message.dataValues.id,
-        userId: user.dataValues.id,
-      },
-    }),
+  const deletedMessagePromises = conversation.dataValues.messages.map(
+    (message) =>
+      DeletedMessage.findOrCreate({
+        where: {
+          messageId: message.dataValues.id,
+        },
+        defaults: {
+          messageId: message.dataValues.id,
+          userId: user.dataValues.id,
+        },
+      }),
+    // eslint-disable-next-line function-paren-newline
   );
 
   await Promise.all(deletedMessagePromises);
