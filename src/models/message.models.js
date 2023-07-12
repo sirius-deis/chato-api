@@ -26,6 +26,9 @@ const Message = sequelize.define('messages', {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
   },
+  forwardMessageId: {
+    type: DataTypes.INTEGER,
+  },
   createdAt: {
     type: DataTypes.DATE,
     defaultValue: new Date(),

@@ -2,9 +2,11 @@ const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 const Message = require('../models/message.models');
 const DeletedMessage = require('../models/deletedMessage.models');
-const { Sequelize } = require('../db/db.config');
+const { Sequelize, sequelize } = require('../db/db.config');
 const Conversation = require('../models/conversation.models');
 const MessageReaction = require('../models/messageReaction.models');
+const Attachment = require('../models/attachment.models');
+const { resizeAndSave } = require('../api/file');
 
 const filterDeletedMessages = async (userId, ...messages) => {
   const deletedMessages = await DeletedMessage.findAll({
@@ -52,6 +54,9 @@ exports.getMessages = catchAsync(async (req, res, next) => {
 
   const messages = await Message.findAll({
     where: Sequelize.and(...query),
+    include: {
+      model: Attachment,
+    },
     order: [['createdAt', 'DESC']],
   });
 
@@ -84,6 +89,9 @@ exports.getMessage = catchAsync(async (req, res, next) => {
       },
       { conversationId },
     ),
+    include: {
+      model: Attachment,
+    },
   });
 
   if (!message) {
@@ -113,7 +121,7 @@ exports.getMessage = catchAsync(async (req, res, next) => {
 });
 
 exports.addMessage = catchAsync(async (req, res, next) => {
-  const { user } = req;
+  const { user, files } = req;
   const { conversationId } = req.params;
   const { message, repliedMessageId } = req.body;
 
@@ -128,46 +136,59 @@ exports.addMessage = catchAsync(async (req, res, next) => {
   if (!participants.length) {
     return next(new AppError('There is no conversation with such id for this user', 404));
   }
+  const receiver = participants.find(
+    (participant) => participant.dataValues.id.toString() !== user.dataValues.id.toString(),
+  );
+  const blockList = await receiver.getBlocker();
 
-  if (conversation.dataValues.type === 'private') {
-    const receiver = participants.find(
-      (participant) => participant.dataValues.id.toString() !== user.dataValues.id.toString(),
-    );
-    const blockList = await receiver.getBlocker();
-
-    if (
-      blockList.find(
-        (blockedUser) => blockedUser.dataValues.id.toString() === user.dataValues.id.toString(),
-      )
-    ) {
-      return next(new AppError('You were blocked by selected user', 400));
-    }
-  } else {
-    //TODO: add a block list for group chats
+  if (
+    blockList.find(
+      (blockedUser) => blockedUser.dataValues.id.toString() === user.dataValues.id.toString(),
+    )
+  ) {
+    return next(new AppError('You were blocked by selected user', 400));
   }
 
   const repliedMessage = await Message.findByPk(repliedMessageId);
 
-  const deletedMessage = await DeletedMessage.findOne({
-    where: Sequelize.and(
-      {
-        userId: user.dataValues.id,
-      },
-      {
-        messageId: repliedMessageId,
-      },
-    ),
-  });
-
-  if (!repliedMessage || deletedMessage) {
+  if (repliedMessageId && !repliedMessage) {
     return next(new AppError('There is no message to reply with such id', 400));
   }
 
-  await Message.create({
-    conversationId: conversationId,
-    senderId: user.dataValues.id,
-    message,
-    repliedMessageId,
+  let deletedMessage;
+
+  if (repliedMessageId) {
+    deletedMessage = await DeletedMessage.findOne({
+      where: Sequelize.and(
+        {
+          userId: user.dataValues.id,
+        },
+        {
+          messageId: repliedMessageId,
+        },
+      ),
+    });
+  }
+
+  if (deletedMessage) {
+    return next(new AppError('There is no message to reply with such id', 400));
+  }
+
+  await sequelize.transaction(async () => {
+    await Message.create({
+      conversationId: conversationId,
+      senderId: user.dataValues.id,
+      message,
+      repliedMessageId,
+    });
+    //TODO: add cloud storage and store attachments there
+    await Promise.all(
+      files.map(async (file) => {
+        const path = '';
+        await resizeAndSave(file.buffer, { width: 1024, height: 1024 }, 'png', path);
+        return Message.addAttachment({ fileUrl: path });
+      }),
+    );
   });
 
   res.status(201).json({ message: 'Your message was sent successfully' });
@@ -212,7 +233,6 @@ exports.deleteMessage = catchAsync(async (req, res, next) => {
     where: Sequelize.and({
       id: messageId,
       conversationId: conversationId,
-      senderId: user.dataValues.id,
     }),
   });
 
@@ -230,6 +250,20 @@ exports.deleteMessage = catchAsync(async (req, res, next) => {
     messageId: messageId,
     userId: user.dataValues.id,
   });
+
+  const deletedMessages = await DeletedMessage.findAll({
+    where: {
+      messageId: messageId,
+    },
+  });
+
+  if (deletedMessages.length === 2) {
+    await sequelize.transaction(async () => {
+      await Promise.all(deletedMessages.map((deleted) => deleted.destroy()));
+      await foundMessage.removeAttachments();
+      await foundMessage.destroy();
+    });
+  }
 
   res.status(204).send();
 });

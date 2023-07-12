@@ -188,5 +188,5 @@ describe('/messages route', () => {
         .end(done);
     });
   });
-  describe('add message controller', () => {
+  describe('add message controller', () => {});
 });

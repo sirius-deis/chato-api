@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../db/db.config');
 
-const Attachment = sequelize.define('message', {
+const Attachment = sequelize.define('attachment', {
   id: {
     type: DataTypes.INTEGER,
     autoIncrement: true,
@@ -10,7 +10,6 @@ const Attachment = sequelize.define('message', {
   },
   thumbUrl: {
     type: DataTypes.STRING,
-    allowNull: true,
   },
   fileUrl: {
     type: DataTypes.STRING,

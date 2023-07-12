@@ -7,6 +7,7 @@ const Message = require('./models/message.models');
 const DeletedMessage = require('./models/deletedMessage.models');
 const DeletedConversation = require('./models/deletedConversation.models');
 const MessageReaction = require('./models/messageReaction.models');
+const Attachment = require('./models/attachment.models');
 
 User.hasOne(ActivateToken, { onDelete: 'cascade', foreignKey: 'userId' });
 ActivateToken.belongsTo(User, { foreignKey: 'userId' });
@@ -25,6 +26,9 @@ Message.belongsTo(Conversation, { foreignKey: 'conversationId' });
 
 User.hasMany(Message, { onDelete: 'cascade', foreignKey: 'senderId' });
 Message.belongsTo(User, { foreignKey: 'senderId' });
+
+Message.hasMany(Attachment, { onDelete: 'cascade', foreignKey: 'messageId' });
+Attachment.belongsTo(Message, { foreignKey: 'messageId' });
 
 User.belongsToMany(Conversation, { through: DeletedConversation, foreignKey: 'userId' });
 Conversation.belongsToMany(User, {
