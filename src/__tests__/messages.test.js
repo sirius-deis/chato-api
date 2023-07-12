@@ -211,7 +211,7 @@ describe('/messages route', () => {
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token1}`)
-        .send({})
+        .send({ message: '' })
         .expect(400)
         .expect('Content-Type', /json/)
         .expect((res) => {
@@ -286,6 +286,77 @@ describe('/messages route', () => {
         .expect('Content-Type', /json/)
         .expect((res) => {
           expect(res.body.message).toBe('Your message was sent successfully');
+        })
+        .end(done);
+    });
+  });
+  describe('edit message controller', () => {
+    it('should return 401 as there is no token provided', (done) => {
+      request(app)
+        .put('/api/v1/conversations/1/messages/1')
+        .type('json')
+        .set('Accept', 'application/json')
+        .send()
+        .expect(401)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('Sign in before accessing this route');
+        })
+        .end(done);
+    });
+    it('should return 400 as there is no message provided', (done) => {
+      request(app)
+        .put('/api/v1/conversations/1/messages/1')
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token1}`)
+        .send({ message: '' })
+        .expect(400)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toEqual(["Field: message can't be empty"]);
+        })
+        .end(done);
+    });
+    it('should return 404 as there is no message with provided id', (done) => {
+      request(app)
+        .put('/api/v1/conversations/1/messages/1000')
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token1}`)
+        .send({ message: 'some message' })
+        .expect(404)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('There is no such message that you can edit');
+        })
+        .end(done);
+    });
+    it('should return 404 as it is not user message', (done) => {
+      request(app)
+        .put('/api/v1/conversations/1/messages/2')
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token1}`)
+        .send({ message: 'some message' })
+        .expect(404)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('There is no such message that you can edit');
+        })
+        .end(done);
+    });
+    it('should return 200 and edit message', (done) => {
+      request(app)
+        .put('/api/v1/conversations/1/messages/1')
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token1}`)
+        .send({ message: 'some message' })
+        .expect(200)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('Your message was edited successfully');
         })
         .end(done);
     });

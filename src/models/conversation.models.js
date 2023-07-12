@@ -15,6 +15,9 @@ const Conversation = sequelize.define('conversations', {
     type: DataTypes.ENUM('private', 'groupe', 'channel'),
     allowNull: false,
   },
+  pictures: {
+    type: DataTypes.JSON,
+  },
 });
 
 module.exports = Conversation;

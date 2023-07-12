@@ -21,7 +21,7 @@ messageRouter
   .route('/')
   .get(getMessages)
   .post(
-    isNotEmpty({ field: 'message' }),
+    isNotEmpty({ field: 'message', isOptional: true }),
     validationMiddleware,
     uploadFiles('files', 5),
     addMessage,
@@ -30,7 +30,12 @@ messageRouter
 messageRouter
   .route('/:messageId')
   .get(getMessage)
-  .put(isNotEmpty({ field: 'message' }), validationMiddleware, uploadFiles('files', 5), editMessage)
+  .put(
+    isNotEmpty({ field: 'message', isOptional: true }),
+    validationMiddleware,
+    uploadFiles('files', 5),
+    editMessage,
+  )
   .patch(reactOnMessage)
   .delete(deleteMessage);
 
