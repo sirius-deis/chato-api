@@ -10,6 +10,7 @@ const {
 } = require('../controllers/message.controllers');
 const { isLoggedIn } = require('../middlewares/auth.middlewares');
 const { isNotEmpty } = require('../utils/validator');
+const validationMiddleware = require('../middlewares/validation.middlewares');
 const { uploadFiles } = require('../api/file');
 
 const messageRouter = express.Router({ mergeParams: true });
@@ -19,12 +20,17 @@ messageRouter.use(isLoggedIn);
 messageRouter
   .route('/')
   .get(getMessages)
-  .post(isNotEmpty('message'), uploadFiles('files', 5), addMessage);
+  .post(
+    isNotEmpty({ field: 'message' }),
+    validationMiddleware,
+    uploadFiles('files', 5),
+    addMessage,
+  );
 
 messageRouter
   .route('/:messageId')
   .get(getMessage)
-  .put(editMessage)
+  .put(isNotEmpty({ field: 'message' }), validationMiddleware, uploadFiles('files', 5), editMessage)
   .patch(reactOnMessage)
   .delete(deleteMessage);
 

@@ -42,9 +42,11 @@ describe('/messages route', () => {
     const user1 = await createUser('test1');
     const user2 = await createUser('test2');
     const user3 = await createUser('test3');
+    const user4 = await createUser('test4');
     const conversation1 = await createConversation(user1.dataValues.id, user2.dataValues.id);
     const conversation2 = await createConversation(user1.dataValues.id, user3.dataValues.id);
     const conversation3 = await createConversation(user2.dataValues.id, user3.dataValues.id);
+    await createConversation(user1.dataValues.id, user4.dataValues.id);
     await createMessage(conversation1.dataValues.id, user1.dataValues.id, 'message 1');
     await createMessage(conversation1.dataValues.id, user2.dataValues.id, 'message 2');
     await createMessage(conversation1.dataValues.id, user1.dataValues.id, 'message 3');
@@ -61,6 +63,7 @@ describe('/messages route', () => {
     );
     await DeletedMessage.create({ userId: user1.dataValues.id, messageId: message4.dataValues.id });
     await DeletedMessage.create({ userId: user1.dataValues.id, messageId: message5.dataValues.id });
+    await user4.addBlocker(user1.dataValues.id);
     const res = await request(app)
       .post('/api/v1/users/login')
       .send({ email: 'test1@test.com', password: 'password' });
@@ -188,5 +191,103 @@ describe('/messages route', () => {
         .end(done);
     });
   });
-  describe('add message controller', () => {});
+  describe('add message controller', () => {
+    it('should return 401 as there is no token provided', (done) => {
+      request(app)
+        .post('/api/v1/conversations/1/messages')
+        .type('json')
+        .set('Accept', 'application/json')
+        .send()
+        .expect(401)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('Sign in before accessing this route');
+        })
+        .end(done);
+    });
+    it('should return 400 as there is no message provided', (done) => {
+      request(app)
+        .post('/api/v1/conversations/1/messages')
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token1}`)
+        .send({})
+        .expect(400)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toEqual(["Field: message can't be empty"]);
+        })
+        .end(done);
+    });
+    it('should return 404 as there is no conversation with such id', (done) => {
+      request(app)
+        .post('/api/v1/conversations/1000/messages')
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token1}`)
+        .send({ message: 'some text' })
+        .expect(404)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('There is no conversation with such id');
+        })
+        .end(done);
+    });
+    it('should return 400 as user was blocked by selected receiver', (done) => {
+      request(app)
+        .post('/api/v1/conversations/4/messages')
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token1}`)
+        .send({ message: 'some text' })
+        .expect(400)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('You were blocked by selected user');
+        })
+        .end(done);
+    });
+    it('should return 400 as there is no message to reply with such id', (done) => {
+      request(app)
+        .post('/api/v1/conversations/1/messages')
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token1}`)
+        .send({ message: 'some text', repliedMessageId: 1000 })
+        .expect(400)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('There is no message to reply with such id');
+        })
+        .end(done);
+    });
+    it('should return 400 as message to reply with provided id was deleted', (done) => {
+      request(app)
+        .post('/api/v1/conversations/1/messages')
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token1}`)
+        .send({ message: 'some text', repliedMessageId: 4 })
+        .expect(400)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('There is no message to reply with such id');
+        })
+        .end(done);
+    });
+    it('should return 201 and save a message', (done) => {
+      request(app)
+        .post('/api/v1/conversations/1/messages')
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token1}`)
+        .send({ message: 'some text', repliedMessageId: 1 })
+        .expect(201)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('Your message was sent successfully');
+        })
+        .end(done);
+    });
+  });
 });

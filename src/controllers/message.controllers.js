@@ -132,21 +132,20 @@ exports.addMessage = catchAsync(async (req, res, next) => {
   }
 
   const participants = await conversation.getUsers();
-
-  if (!participants.length) {
+  if (!participants.find((participant) => participant.dataValues.id === user.dataValues.id)) {
     return next(new AppError('There is no conversation with such id for this user', 404));
   }
-  const receiver = participants.find(
-    (participant) => participant.dataValues.id.toString() !== user.dataValues.id.toString(),
-  );
-  const blockList = await receiver.getBlocker();
+  if (conversation.dataValues.type === 'private') {
+    const receiver = participants.find(
+      (participant) => participant.dataValues.id !== user.dataValues.id,
+    );
+    const blockList = await receiver.getBlocker();
 
-  if (
-    blockList.find(
-      (blockedUser) => blockedUser.dataValues.id.toString() === user.dataValues.id.toString(),
-    )
-  ) {
-    return next(new AppError('You were blocked by selected user', 400));
+    if (blockList.find((blockedUser) => blockedUser.dataValues.id === user.dataValues.id)) {
+      return next(new AppError('You were blocked by selected user', 400));
+    }
+  } else {
+    //TODO: add a block list for group chats
   }
 
   const repliedMessage = await Message.findByPk(repliedMessageId);
@@ -182,20 +181,22 @@ exports.addMessage = catchAsync(async (req, res, next) => {
       repliedMessageId,
     });
     //TODO: add cloud storage and store attachments there
-    await Promise.all(
-      files.map(async (file) => {
-        const path = '';
-        await resizeAndSave(file.buffer, { width: 1024, height: 1024 }, 'png', path);
-        return Message.addAttachment({ fileUrl: path });
-      }),
-    );
+    if (files) {
+      await Promise.all(
+        files.map(async (file) => {
+          const path = '';
+          await resizeAndSave(file.buffer, { width: 1024, height: 1024 }, 'png', path);
+          return Message.addAttachment({ fileUrl: path });
+        }),
+      );
+    }
   });
 
   res.status(201).json({ message: 'Your message was sent successfully' });
 });
 
 exports.editMessage = catchAsync(async (req, res, next) => {
-  const { user } = req;
+  const { user, files } = req;
   const { conversationId, messageId } = req.params;
   const { message } = req.body;
 
@@ -220,7 +221,19 @@ exports.editMessage = catchAsync(async (req, res, next) => {
   foundMessage.message = message;
   foundMessage.isEdited = true;
 
-  await foundMessage.save();
+  await sequelize.transaction(async () => {
+    await foundMessage.save();
+    await foundMessage.removeAttachments();
+    if (files) {
+      await Promise.all(
+        files.map(async (file) => {
+          const path = '';
+          await resizeAndSave(file.buffer, { width: 1024, height: 1024 }, 'png', path);
+          return Message.addAttachment({ fileUrl: path });
+        }),
+      );
+    }
+  });
 
   res.status(200).json({ message: 'Your message was edited successfully' });
 });
@@ -283,8 +296,10 @@ exports.unsendMessage = catchAsync(async (req, res, next) => {
   if (!foundMessage || foundMessage.dataValues.isRead) {
     return next(new AppError('There is no such message that you can unsend', 404));
   }
-
-  await foundMessage.destroy();
+  await sequelize.transaction(async () => {
+    await foundMessage.removeAttachments();
+    await foundMessage.destroy();
+  });
 
   res.status(204).send();
 });
