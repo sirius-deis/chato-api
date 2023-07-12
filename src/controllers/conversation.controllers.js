@@ -10,6 +10,8 @@ const {
   getReceiverIfExists,
   isUserBlocked,
   findConversationId,
+  checkIfConversationWasDeletedAndRestoreIfYes,
+  createConversation,
 } = require('../utils/conversation');
 
 exports.getAllConversations = catchAsync(async (req, res, next) => {
@@ -53,7 +55,7 @@ exports.getAllConversations = catchAsync(async (req, res, next) => {
 });
 
 exports.createConversation = catchAsync(async (req, res, next) => {
-  const { user } = req;
+  const { user, files } = req;
   const { receiverId } = req.params;
   const { title } = req.body;
 
@@ -73,32 +75,15 @@ exports.createConversation = catchAsync(async (req, res, next) => {
   const conversationId = await findConversationId(user, receiver);
 
   if (conversationId) {
-    const deletedConversation = await DeletedConversation.findOne({
-      where: {
-        conversationId,
-        userId: user.dataValues.id,
-      },
-    });
-
-    if (!deletedConversation) {
-      return next(new AppError('Conversation with this user is already exists', 400));
+    if (await checkIfConversationWasDeletedAndRestoreIfYes(user.dataValues.id, conversationId)) {
+      return res.status(200).json({
+        message: 'Conversation was created successfully',
+      });
     }
-    await deletedConversation.destroy();
-    return res.status(200).json({
-      message: 'Conversation was created successfully',
-    });
+    return next(new AppError('Conversation with this user is already exists', 400));
   }
 
-  await sequelize.transaction(async () => {
-    const conversation = await Conversation.create({
-      type: 'private',
-      creatorId: user.dataValues.id,
-      title,
-    });
-    conversation.addUser(user.dataValues.id, { through: { role: 'user' } });
-    conversation.addUser(receiver.dataValues.id, { through: { role: 'user' } });
-    await conversation.save();
-  });
+  await createConversation(user.dataValues.id, receiver.dataValues.id, title);
 
   res.status(201).json({
     message: 'Conversation was created successfully',
@@ -164,5 +149,16 @@ exports.deleteConversation = catchAsync(async (req, res, next) => {
 
   res.status(204).json({
     message: 'Conversation was deleted successfully',
+  });
+});
+
+//TODO: create edit conversation controller
+exports.editConversation = catchAsync(async (req, res, next) => {
+  const { user } = req;
+  const { conversationId } = req.params;
+  const { title } = req.body;
+
+  res.status(204).json({
+    message: 'Conversation was edited successfully',
   });
 });

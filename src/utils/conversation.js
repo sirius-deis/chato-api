@@ -1,4 +1,7 @@
 const User = require('../models/user.models');
+const DeletedConversation = require('../models/deletedConversation.models');
+const Conversation = require('../models/conversation.models');
+const { sequelize } = require('../db/db.config');
 
 const findIfConversationExists = (arr1, arr2) => {
   const map = {};
@@ -47,4 +50,32 @@ exports.findConversationId = async (user, receiver) => {
   const conversationId = findIfConversationExists(...conversationsArr);
 
   return conversationId;
+};
+
+exports.checkIfConversationWasDeletedAndRestoreIfYes = async (userId, conversationId) => {
+  const deletedConversation = await DeletedConversation.findOne({
+    where: {
+      conversationId,
+      userId,
+    },
+  });
+
+  if (!deletedConversation) {
+    return false;
+  }
+  await deletedConversation.destroy();
+  return true;
+};
+
+exports.createConversation = async (userId, receiverId, title) => {
+  await sequelize.transaction(async () => {
+    const conversation = await Conversation.create({
+      type: 'private',
+      creatorId: userId,
+      title,
+    });
+    conversation.addUser(userId, { through: { role: 'user' } });
+    conversation.addUser(receiverId, { through: { role: 'user' } });
+    await conversation.save();
+  });
 };
