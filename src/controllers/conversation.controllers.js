@@ -2,26 +2,15 @@ const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 const Conversation = require('../models/conversation.models');
 const Message = require('../models/message.models');
-const User = require('../models/user.models');
-const Participant = require('../models/participant.models');
 const { sequelize, Sequelize } = require('../db/db.config');
 const DeletedMessage = require('../models/deletedMessage.models');
 const DeletedConversation = require('../models/deletedConversation.models');
-
-const findIfConversationExists = (arr1, arr2) => {
-  const map = {};
-  for (let i = 0; i < arr1.length; i += 1) {
-    map[arr1[i].dataValues.conversationId] = true;
-  }
-
-  for (let i = 0; i < arr2.length; i += 1) {
-    if (map[arr2[i].dataValues.conversationId]) {
-      return arr2[i].dataValues.conversationId;
-    }
-  }
-
-  return false;
-};
+const {
+  isUserIdsTheSame,
+  getReceiverIfExists,
+  isUserBlocked,
+  findConversationId,
+} = require('../utils/conversation');
 
 exports.getAllConversations = catchAsync(async (req, res, next) => {
   const { user } = req;
@@ -68,32 +57,20 @@ exports.createConversation = catchAsync(async (req, res, next) => {
   const { receiverId } = req.params;
   const { title } = req.body;
 
-  if (user.dataValues.id.toString() === receiverId) {
+  if (isUserIdsTheSame(user.dataValues.id.toString(), receiverId)) {
     return next(new AppError("You can't start conversation with yourself", 400));
   }
 
-  const receiver = await User.findByPk(receiverId);
-
+  const receiver = await getReceiverIfExists(receiverId);
   if (!receiver) {
     return next(new AppError('There is no user with such id', 404));
   }
 
-  const participantsArr = await Promise.all([
-    Participant.findAll({ where: { userId: user.dataValues.id } }),
-    Participant.findAll({ where: { userId: receiver.dataValues.id } }),
-  ]);
-
-  const blockList = await receiver.getBlocker();
-
-  if (
-    blockList.find(
-      (blockedUser) => blockedUser.dataValues.id.toString() === user.dataValues.id.toString(),
-    )
-  ) {
+  if (await isUserBlocked(user.dataValues.id.toString(), receiver)) {
     return next(new AppError('You were blocked by this user', 400));
   }
 
-  const conversationId = findIfConversationExists(...participantsArr);
+  const conversationId = await findConversationId(user, receiver);
 
   if (conversationId) {
     const deletedConversation = await DeletedConversation.findOne({
