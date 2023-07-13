@@ -273,6 +273,64 @@ exports.addUserToConversation = catchAsync(async (req, res, next) => {
   });
 });
 
-exports.removeUserFromConversation = catchAsync(async (req, res, next) => {});
+exports.removeUserFromConversation = catchAsync(async (req, res, next) => {
+  const { user } = req;
+  const { userId: userToRemoveId, conversationId } = req.params;
+  const conversation = await Conversation.findByPk(conversationId);
 
-exports.exitFromConversation = catchAsync(async (req, res, next) => {});
+  if (!conversation) {
+    return next(new AppError('There is no conversation with such id', 404));
+  }
+
+  if (!(await conversation.hasUser(user.dataValues.id))) {
+    return next(new AppError("You don't have access right for this operation", 403));
+  }
+
+  const userToInvite = await User.findByPk(userToRemoveId);
+
+  if (!userToInvite) {
+    return next(new AppError('There is no user with such id', 404));
+  }
+
+  if (conversation.dataValues.type === 'private') {
+    return next(new AppError("You can't perform such an operation to private conversation", 400));
+  }
+
+  conversation.removeUser({
+    where: {
+      userId: userToRemoveId,
+    },
+  });
+
+  await conversation.save();
+
+  res.status(200).json({
+    message: 'User was removed from conversation successfully',
+  });
+});
+
+exports.exitFromConversation = catchAsync(async (req, res, next) => {
+  const { user } = req;
+  const { conversationId } = req.params;
+  const conversation = await Conversation.findByPk(conversationId);
+
+  if (!conversation) {
+    return next(new AppError('There is no conversation with such id', 404));
+  }
+
+  if (conversation.dataValues.type === 'private') {
+    return next(new AppError("You can't perform such an operation to private conversation", 400));
+  }
+
+  conversation.removeUser({
+    where: {
+      userId: user.dataValues.id,
+    },
+  });
+
+  await conversation.save();
+
+  res.status(200).json({
+    message: 'User exited from conversation successfully',
+  });
+});

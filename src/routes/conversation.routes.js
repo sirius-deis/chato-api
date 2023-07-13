@@ -2,8 +2,12 @@ const express = require('express');
 const {
   getAllConversations,
   createConversation,
+  createGroupConversation,
   deleteConversation,
   editConversation,
+  addUserToConversation,
+  removeUserFromConversation,
+  exitFromConversation,
 } = require('../controllers/conversation.controllers');
 const { isLoggedIn } = require('../middlewares/auth.middlewares');
 const { uploadFile } = require('../api/file');
@@ -20,6 +24,12 @@ conversationRouter
   .get(getAllConversations)
   .post(uploadFile('image'), createConversation);
 
+conversationRouter.route('/group').post(uploadFile('image'), createGroupConversation);
+
 conversationRouter.route('/:conversationId').patch(editConversation).delete(deleteConversation);
+
+conversationRouter.patch('/:conversationId/add', addUserToConversation);
+conversationRouter.patch('/:conversationId/remove', removeUserFromConversation);
+conversationRouter.patch('/:conversationId/exit', exitFromConversation);
 
 module.exports = conversationRouter;
