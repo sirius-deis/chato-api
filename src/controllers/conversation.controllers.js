@@ -2,6 +2,7 @@ const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 const Conversation = require('../models/conversation.models');
 const Message = require('../models/message.models');
+const User = require('../models/user.models');
 const { Sequelize, sequelize } = require('../db/db.config');
 const DeletedMessage = require('../models/deletedMessage.models');
 const DeletedConversation = require('../models/deletedConversation.models');
@@ -95,14 +96,13 @@ exports.getAllConversations = catchAsync(async (req, res, next) => {
 
 exports.createConversation = catchAsync(async (req, res, next) => {
   const { user } = req;
-  const { receiverId } = req.params;
-  const { title, type } = req.body;
+  const { userId: userToInviteId } = req.params;
 
-  if (isUserIdsTheSame(user.dataValues.id.toString(), receiverId)) {
+  if (isUserIdsTheSame(user.dataValues.id.toString(), userToInviteId)) {
     return next(new AppError("You can't start conversation with yourself", 400));
   }
 
-  const receiver = await getReceiverIfExists(receiverId);
+  const receiver = await getReceiverIfExists(userToInviteId);
   if (!receiver) {
     return next(new AppError('There is no user with such id', 404));
   }
@@ -122,10 +122,21 @@ exports.createConversation = catchAsync(async (req, res, next) => {
     return next(new AppError('Conversation with this user is already exists', 400));
   }
 
-  await createConversation(user.dataValues.id, receiver.dataValues.id, { title, type });
+  await createConversation(user.dataValues.id, receiver.dataValues.id);
 
   res.status(201).json({
     message: 'Conversation was created successfully',
+  });
+});
+
+exports.createGroupConversation = catchAsync(async (req, res, next) => {
+  const { user } = req;
+  const { title } = req.body;
+
+  await createConversation(user.dataValues.id, null, { title, type: 'group' });
+
+  res.status(201).json({
+    message: 'Group conversation was created successfully',
   });
 });
 
@@ -230,7 +241,37 @@ exports.editConversation = catchAsync(async (req, res, next) => {
   });
 });
 
-exports.addUserToConversation = catchAsync(async (req, res, next) => {});
+exports.addUserToConversation = catchAsync(async (req, res, next) => {
+  const { user } = req;
+  const { userId: userToInviteId, conversationId } = req.params;
+  const conversation = await Conversation.findByPk(conversationId);
+
+  if (!conversation) {
+    return next(new AppError('There is no conversation with such id', 404));
+  }
+
+  if (!(await conversation.hasUser(user.dataValues.id))) {
+    return next(new AppError("You don't have access right for this operation", 403));
+  }
+
+  const userToInvite = await User.findByPk(userToInviteId);
+
+  if (!userToInvite) {
+    return next(new AppError('There is no user with such id', 404));
+  }
+
+  if (conversation.dataValues.type === 'private') {
+    return next(new AppError("You can't add people to private conversation", 400));
+  }
+
+  conversation.addUser(userToInviteId, { through: { role: 'user' } });
+
+  await conversation.save();
+
+  res.status(200).json({
+    message: 'User was added to conversation successfully',
+  });
+});
 
 exports.removeUserFromConversation = catchAsync(async (req, res, next) => {});
 

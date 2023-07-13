@@ -27,7 +27,7 @@ const validationMiddleware = require('../middlewares/validation.middlewares');
 
 const userRouter = express.Router();
 
-userRouter.use('/:receiverId/conversations/', conversationRouter);
+userRouter.use('/:userId/conversations/', conversationRouter);
 
 userRouter.post(
   '/signup',

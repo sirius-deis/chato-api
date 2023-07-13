@@ -18,14 +18,14 @@ const findIfConversationExists = (arr1, arr2) => {
   return false;
 };
 
-exports.isUserIdsTheSame = (userId, receiverId) => {
-  if (userId === receiverId) {
+exports.isUserIdsTheSame = (userId, userToInviteId) => {
+  if (userId === userToInviteId) {
     return true;
   }
 };
 
-exports.getReceiverIfExists = async (receiverId) => {
-  const receiver = await User.findByPk(receiverId);
+exports.getReceiverIfExists = async (userToInviteId) => {
+  const receiver = await User.findByPk(userToInviteId);
 
   if (!receiver) {
     return false;
@@ -33,18 +33,18 @@ exports.getReceiverIfExists = async (receiverId) => {
   return receiver;
 };
 
-exports.isUserBlocked = async (userId, receiver) => {
-  const blockList = await receiver.getBlocker();
+exports.isUserBlocked = async (userId, userToInvite) => {
+  const blockList = await userToInvite.getBlocker();
 
   if (blockList.find((blockedUser) => blockedUser.dataValues.id.toString() === userId)) {
     return true;
   }
 };
 
-exports.findConversationId = async (user, receiver) => {
+exports.findConversationId = async (user, userToInvite) => {
   const conversationsArr = await Promise.all([
     user.getConversations(),
-    receiver.getConversations(),
+    userToInvite.getConversations(),
   ]);
 
   const conversationId = findIfConversationExists(...conversationsArr);
@@ -67,15 +67,21 @@ exports.checkIfConversationWasDeletedAndRestoreIfYes = async (userId, conversati
   return true;
 };
 
-exports.createConversation = async (userId, receiverId, { title, type = 'private' }) => {
+exports.createConversation = async (userId, userToInviteId, { title, type = 'private' } = {}) => {
   await sequelize.transaction(async () => {
     const conversation = await Conversation.create({
       type,
       creatorId: userId,
       title,
     });
-    conversation.addUser(userId, { through: { role: 'user' } });
-    conversation.addUser(receiverId, { through: { role: 'user' } });
+    let creatorRole;
+    if (!userToInviteId) {
+      creatorRole = 'owner';
+    }
+    conversation.addUser(userId, { through: { role: creatorRole } });
+    if (userToInviteId) {
+      conversation.addUser(userToInviteId);
+    }
     await conversation.save();
   });
 };
