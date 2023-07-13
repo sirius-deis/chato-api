@@ -33,6 +33,19 @@ const replaceConversationNamesWithUserName = async (conversationList, userId) =>
     }),
   );
 
+const addAmountOfUnreadMessages = async (conversationList) =>
+  await Promise.all(
+    conversationList.map(async (conversation) => {
+      const unreadMessagesCount = await conversation.countMessages({
+        where: {
+          isRead: false,
+        },
+      });
+      conversation.dataValues.unreadMessagesCount = unreadMessagesCount;
+      return conversation;
+    }),
+  );
+
 exports.getAllConversations = catchAsync(async (req, res, next) => {
   const { user } = req;
 
@@ -63,17 +76,19 @@ exports.getAllConversations = catchAsync(async (req, res, next) => {
     (conversation) => conversation.dataValues.id.toString(),
     // eslint-disable-next-line function-paren-newline
   );
-  const conversationList = conversations.filter(
+  const conversationsWithoutDeleted = conversations.filter(
     (conversation) => !deletedIds.includes(conversation.dataValues.id.toString()),
   );
   const conversationsWithReplacedNames = await replaceConversationNamesWithUserName(
-    conversationList,
+    conversationsWithoutDeleted,
     user.dataValues.id,
   );
+  const conversationList = await addAmountOfUnreadMessages(conversationsWithReplacedNames);
+
   return res.status(200).json({
     message: 'Conversations were found',
     data: {
-      conversations: conversationsWithReplacedNames,
+      conversations: conversationList,
     },
   });
 });
