@@ -2,7 +2,7 @@ const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 const Conversation = require('../models/conversation.models');
 const Message = require('../models/message.models');
-const { sequelize, Sequelize } = require('../db/db.config');
+const { Sequelize } = require('../db/db.config');
 const DeletedMessage = require('../models/deletedMessage.models');
 const DeletedConversation = require('../models/deletedConversation.models');
 const {
@@ -13,6 +13,25 @@ const {
   checkIfConversationWasDeletedAndRestoreIfYes,
   createConversation,
 } = require('../utils/conversation');
+
+const replaceConversationNamesWithUserName = async (conversationList, userId) =>
+  await Promise.all(
+    conversationList.map(async (conversation) => {
+      if (conversation.dataValues.type === 'private') {
+        const interlocutor = (
+          await conversation.getUsers({
+            where: {
+              id: {
+                [Sequelize.Op.not]: userId,
+              },
+            },
+          })
+        )[0];
+        conversation.dataValues.title = interlocutor.get('userName');
+      }
+      return conversation;
+    }),
+  );
 
 exports.getAllConversations = catchAsync(async (req, res, next) => {
   const { user } = req;
@@ -44,18 +63,23 @@ exports.getAllConversations = catchAsync(async (req, res, next) => {
     (conversation) => conversation.dataValues.id.toString(),
     // eslint-disable-next-line function-paren-newline
   );
+  const conversationList = conversations.filter(
+    (conversation) => !deletedIds.includes(conversation.dataValues.id.toString()),
+  );
+  const conversationsWithReplacedNames = await replaceConversationNamesWithUserName(
+    conversationList,
+    user.dataValues.id,
+  );
   return res.status(200).json({
     message: 'Conversations were found',
     data: {
-      conversations: conversations.filter(
-        (conversation) => !deletedIds.includes(conversation.dataValues.id.toString()),
-      ),
+      conversations: conversationsWithReplacedNames,
     },
   });
 });
 
 exports.createConversation = catchAsync(async (req, res, next) => {
-  const { user, files } = req;
+  const { user } = req;
   const { receiverId } = req.params;
   const { title } = req.body;
 

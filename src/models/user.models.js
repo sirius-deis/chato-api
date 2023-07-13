@@ -31,11 +31,11 @@ const User = sequelize.define(
       type: DataTypes.DATE,
       field: 'password_changed_at',
     },
-    firstName: {
+    userName: {
       type: DataTypes.STRING(20),
-    },
-    lastName: {
-      type: DataTypes.STRING(20),
+      get() {
+        return this.getDataValue('userName') || this.getDataValue('email');
+      },
     },
     bio: {
       type: DataTypes.TEXT,

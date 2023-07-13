@@ -115,7 +115,14 @@ exports.login = catchAsync(async (req, res, next) => {
     {
       message: 'You were logged in successfully',
       data: {
-        user: { ...user.dataValues, isBlocked: undefined, passwordChangedAt: undefined },
+        user: {
+          ...user.get(),
+          password: undefined,
+          passwordChangedAt: undefined,
+          isBlocked: undefined,
+          isReported: undefined,
+          isActive: undefined,
+        },
       },
     },
     user.id,
@@ -158,8 +165,7 @@ exports.getUser = catchAsync(async (req, res, next) => {
           id: user.dataValues.id,
           phone: user.dataValues.phone,
           email: user.dataValues.email,
-          firstName: user.dataValues.firstName,
-          lastName: user.dataValues.lastName,
+          userName: user.get('userName'),
           bio: user.dataValues.bio,
         },
       },
@@ -176,7 +182,7 @@ exports.getUser = catchAsync(async (req, res, next) => {
     data: {
       user: {
         id: retrievedUser.dataValues.id,
-        firstName: retrievedUser.dataValues.firstName,
+        userName: retrievedUser.get('userName'),
         bio: retrievedUser.dataValues.bio,
       },
     },

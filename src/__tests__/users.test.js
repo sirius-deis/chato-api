@@ -13,8 +13,7 @@ const createUser = async (text, { isActive = false, isBlocked = false, role = 'u
   await User.create({
     email: `${text}@test.com`,
     password: 'password',
-    firstName: text,
-    lastName: text,
+    userName: text,
     bio: text,
     isActive,
     isBlocked,
@@ -469,8 +468,7 @@ describe('/users route', () => {
           expect(res.body.data.user.phone).toBeNull();
           expect(res.body.data.user.email).toBe('test@test.com');
           expect(res.body.data.user.password).toBeUndefined();
-          expect(res.body.data.user.firstName).toBe('test');
-          expect(res.body.data.user.lastName).toBe('test');
+          expect(res.body.data.user.userName).toBe('test@test.com');
           expect(res.body.data.user.bio).toBe('test');
         })
         .end(done);
@@ -504,8 +502,7 @@ describe('/users route', () => {
           expect(res.body.data.user.phone).toBeUndefined();
           expect(res.body.data.user.email).toBeUndefined();
           expect(res.body.data.user.password).toBeUndefined();
-          expect(res.body.data.user.firstName).toBe('test2');
-          expect(res.body.data.user.lastName).toBeUndefined();
+          expect(res.body.data.user.userName).toBe('test2');
           expect(res.body.data.user.bio).toBe(':)');
         })
         .end(done);
