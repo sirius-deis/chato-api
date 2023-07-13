@@ -176,11 +176,22 @@ exports.deleteConversation = catchAsync(async (req, res, next) => {
   });
 });
 
-//TODO: create edit conversation controller
 exports.editConversation = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { conversationId } = req.params;
   const { title } = req.body;
+
+  const conversation = await Conversation.findByPk(conversationId);
+  if (!(await conversation.hasUser(user.dataValues.id))) {
+    return next(new AppError('This conversation is not your', 403));
+  }
+
+  if (title && conversation.dataValues.type === 'private') {
+    return next(new AppError("The name of private conversation can't be changed", 400));
+  }
+
+  conversation.dataValues.title = title;
+  await conversation.save();
 
   res.status(204).json({
     message: 'Conversation was edited successfully',

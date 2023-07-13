@@ -3,6 +3,7 @@ const {
   getAllConversations,
   createConversation,
   deleteConversation,
+  editConversation,
 } = require('../controllers/conversation.controllers');
 const { isLoggedIn } = require('../middlewares/auth.middlewares');
 const { uploadFile } = require('../api/file');
@@ -19,6 +20,6 @@ conversationRouter
   .get(getAllConversations)
   .post(uploadFile('image'), createConversation);
 
-conversationRouter.route('/:conversationId').delete(deleteConversation);
+conversationRouter.route('/:conversationId').patch(editConversation).delete(deleteConversation);
 
 module.exports = conversationRouter;
