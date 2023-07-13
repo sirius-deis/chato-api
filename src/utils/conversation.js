@@ -67,10 +67,10 @@ exports.checkIfConversationWasDeletedAndRestoreIfYes = async (userId, conversati
   return true;
 };
 
-exports.createConversation = async (userId, receiverId, title) => {
+exports.createConversation = async (userId, receiverId, { title, type = 'private' }) => {
   await sequelize.transaction(async () => {
     const conversation = await Conversation.create({
-      type: 'private',
+      type,
       creatorId: userId,
       title,
     });

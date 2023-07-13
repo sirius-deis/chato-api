@@ -2,7 +2,7 @@ const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 const Conversation = require('../models/conversation.models');
 const Message = require('../models/message.models');
-const { Sequelize } = require('../db/db.config');
+const { Sequelize, sequelize } = require('../db/db.config');
 const DeletedMessage = require('../models/deletedMessage.models');
 const DeletedConversation = require('../models/deletedConversation.models');
 const {
@@ -81,7 +81,7 @@ exports.getAllConversations = catchAsync(async (req, res, next) => {
 exports.createConversation = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { receiverId } = req.params;
-  const { title } = req.body;
+  const { title, type } = req.body;
 
   if (isUserIdsTheSame(user.dataValues.id.toString(), receiverId)) {
     return next(new AppError("You can't start conversation with yourself", 400));
@@ -107,7 +107,7 @@ exports.createConversation = catchAsync(async (req, res, next) => {
     return next(new AppError('Conversation with this user is already exists', 400));
   }
 
-  await createConversation(user.dataValues.id, receiver.dataValues.id, title);
+  await createConversation(user.dataValues.id, receiver.dataValues.id, { title, type });
 
   res.status(201).json({
     message: 'Conversation was created successfully',
@@ -135,6 +135,23 @@ exports.deleteConversation = catchAsync(async (req, res, next) => {
     )
   ) {
     return next(new AppError('There is no such conversation for selected user', 400));
+  }
+
+  if (conversation.dataValues.type === 'group') {
+    const userRole = participants.find(
+      (participant) => participant.dataValues.id === user.dataValues.id,
+    ).dataValues.role;
+    if (userRole !== 'owner') {
+      return next(new AppError('You are not an owner of this group', 403));
+    }
+    await sequelize.transaction(async () => {
+      await conversation.removeMessages();
+      await conversation.removeUsers();
+      await conversation.destroy();
+    });
+    return res.status(200).json({
+      message: 'Conversation was deleted successfully',
+    });
   }
 
   const isDeleted = await DeletedConversation.findOne({
@@ -171,7 +188,7 @@ exports.deleteConversation = catchAsync(async (req, res, next) => {
     conversationId: conversationId,
   });
 
-  res.status(204).json({
+  res.status(200).json({
     message: 'Conversation was deleted successfully',
   });
 });
@@ -197,3 +214,9 @@ exports.editConversation = catchAsync(async (req, res, next) => {
     message: 'Conversation was edited successfully',
   });
 });
+
+exports.addUserToConversation = catchAsync(async (req, res, next) => {});
+
+exports.removeUserFromConversation = catchAsync(async (req, res, next) => {});
+
+exports.exitFromConversation = catchAsync(async (req, res, next) => {});
