@@ -11,7 +11,13 @@ const {
   createConversation,
 } = require('../utils/conversation');
 const { isUserBlockedByAnotherUser } = require('../utils/user');
-const { findOneMessage, createMessage } = require('../utils/message');
+const {
+  findOneDeletedMessage,
+  createMessage,
+  addAttachments,
+  filterDeletedMessages,
+  findOneMessage,
+} = require('../utils/message');
 
 const createNewConversation = async (user, receiverId) => {
   if (isUserIdsTheSame(user.dataValues.id.toString(), receiverId)) {
@@ -99,7 +105,7 @@ module.exports = (server) => {
             });
           }
 
-          const deletedMessageToReply = findOneMessage(user.dataValues.id, repliedMessageId);
+          const deletedMessageToReply = findOneDeletedMessage(user.dataValues.id, repliedMessageId);
           if (deletedMessageToReply) {
             return socket.emit('error_response', {
               message: 'There is no message to reply with such id',
@@ -115,16 +121,58 @@ module.exports = (server) => {
           files,
         );
 
-        const receiverSocket = listOfUsers.get(receiverId);
-        if (!receiverSocket) {
+        const receiverSocketId = listOfUsers.get(receiverId);
+        if (!receiverSocketId) {
           return;
         }
 
-        io.to(receiverSocket).emit('receive_message', { message: createdMessage });
+        io.to(receiverSocketId).emit('send_message', { message: createdMessage });
       },
     );
 
-    socket.on('unsend_message', () => {});
+    socket.on('edit_message', async ({ message, conversationId, messageId, files }) => {
+      const foundMessage = await findOneMessage(messageId, conversationId, {
+        senderId: user.dataValues.id,
+      });
+
+      if (!foundMessage) {
+        return socket.emit('error_response', {
+          message: 'There is no such message that you can edit',
+        });
+      }
+
+      const messagesWithoutDeleted = await filterDeletedMessages(user.dataValues.id, foundMessage);
+
+      if (!messagesWithoutDeleted[0]) {
+        return socket.emit('error_response', {
+          message: 'There is no message with such id',
+        });
+      }
+
+      foundMessage.message = message;
+      foundMessage.isEdited = true;
+
+      await addAttachments(foundMessage, files);
+
+      const participants = await (await foundMessage.getConversation()).getUsers();
+
+      const receiversId = [];
+
+      participants.forEach((participant) => {
+        if (
+          listOfUsers.has(participant.dataValues.id) &&
+          participant.dataValues.id !== user.dataValues.id
+        ) {
+          receiversId.push(listOfUsers.get(participant.dataValues.id));
+        }
+      });
+
+      io.to(receiversId).emit('edit_message', { message: foundMessage });
+    });
+
+    socket.on('unsend_message', ({ conversationId, messageId }) => {});
+
+    socket.on('rate_message', () => {});
 
     socket.on('disconnect', () => {
       socket.broadcast.emit('offline', listOfUsers.get(user.dataValues.id));

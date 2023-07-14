@@ -5,27 +5,15 @@ const DeletedMessage = require('../models/deletedMessage.models');
 const { Sequelize, sequelize } = require('../db/db.config');
 const MessageReaction = require('../models/messageReaction.models');
 const Attachment = require('../models/attachment.models');
-const { resizeAndSave } = require('../api/file');
 const { findConversation } = require('../utils/conversation');
-const { createMessage, findOneMessage } = require('../utils/message');
+const {
+  createMessage,
+  findOneDeletedMessage,
+  addAttachments,
+  filterDeletedMessages,
+  findOneMessage,
+} = require('../utils/message');
 const { isUserBlockedByAnotherUser } = require('../utils/user');
-
-const filterDeletedMessages = async (userId, ...messages) => {
-  const deletedMessages = await DeletedMessage.findAll({
-    where: Sequelize.and(
-      {
-        userId: userId,
-      },
-      {
-        messageId: messages.map((message) => message.dataValues.id.toString()),
-      },
-    ),
-  });
-
-  const deletedIds = deletedMessages.map((message) => message.dataValues.messageId.toString());
-
-  return messages.filter((message) => !deletedIds.includes(message.dataValues.id.toString()));
-};
 
 exports.getMessages = catchAsync(async (req, res, next) => {
   const { user } = req;
@@ -156,7 +144,7 @@ exports.addMessage = catchAsync(async (req, res, next) => {
       return next(new AppError('There is no message to reply with such id', 400));
     }
 
-    const deletedMessageToReply = findOneMessage(user.dataValues.id, repliedMessageId);
+    const deletedMessageToReply = findOneDeletedMessage(user.dataValues.id, repliedMessageId);
     if (deletedMessageToReply) {
       return next(new AppError('There is no message to reply with such id', 400));
     }
@@ -172,12 +160,8 @@ exports.editMessage = catchAsync(async (req, res, next) => {
   const { conversationId, messageId } = req.params;
   const { message } = req.body;
 
-  const foundMessage = await Message.findOne({
-    where: Sequelize.and({
-      id: messageId,
-      conversationId: conversationId,
-      senderId: user.dataValues.id,
-    }),
+  const foundMessage = await findOneMessage(messageId, conversationId, {
+    senderId: user.dataValues.id,
   });
 
   if (!foundMessage) {
@@ -193,19 +177,7 @@ exports.editMessage = catchAsync(async (req, res, next) => {
   foundMessage.message = message;
   foundMessage.isEdited = true;
 
-  await sequelize.transaction(async () => {
-    await foundMessage.save();
-    await foundMessage.removeAttachments();
-    if (files) {
-      await Promise.all(
-        files.map(async (file) => {
-          const path = '';
-          await resizeAndSave(file.buffer, { width: 1024, height: 1024 }, 'png', path);
-          return Message.addAttachment({ fileUrl: path });
-        }),
-      );
-    }
-  });
+  await addAttachments(foundMessage, files);
 
   res.status(200).json({ message: 'Your message was edited successfully' });
 });
