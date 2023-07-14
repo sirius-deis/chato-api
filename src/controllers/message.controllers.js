@@ -215,11 +215,29 @@ exports.deleteMessage = catchAsync(async (req, res, next) => {
   const { conversationId, messageId } = req.params;
 
   const foundMessage = await Message.findOne({
-    where: Sequelize.and({
-      id: messageId,
-      conversationId: conversationId,
-    }),
+    where: Sequelize.and(
+      {
+        id: messageId,
+      },
+      { conversationId: conversationId },
+    ),
   });
+
+  if (!foundMessage) {
+    return next(new AppError('There is no message with such id in this conversation', 404));
+  }
+
+  const conversation = await foundMessage.getConversation();
+
+  if (conversation.dataValues.type === 'group') {
+    const userRole = (await conversation.getUsers({ where: { id: user.dataValues.id } }))[0]
+      .participants.dataValues.role;
+    if (user.dataValues.id !== foundMessage.senderId && ['owner', 'admin'].includes(userRole)) {
+      return next(new AppError("You can't delete message that is not your", 403));
+    }
+    await foundMessage.destroy();
+    return res.status(204).send();
+  }
 
   if (!foundMessage) {
     return next(new AppError('There is no such message that you can delete', 404));
