@@ -428,7 +428,7 @@ exports.addProfilePhoto = catchAsync(async (req, res, next) => {
   const { user, file } = req;
   const { buffer } = file;
 
-  const cldResponse = await resizeAndSave(buffer, { width: 100, height: 100 }, 'jpeg');
+  const cldResponse = await resizeAndSave(buffer, { width: 100, height: 100 }, 'jpeg', 'users');
 
   user.set('photos', cldResponse.secure_url);
 

@@ -34,7 +34,7 @@ exports.uploadFile = (name) => upload.single(name);
 
 exports.uploadFiles = (name, max) => upload.array(name, max);
 
-exports.resizeAndSave = async (buffer, { width, height }, format) => {
+exports.resizeAndSave = async (buffer, { width, height }, format, subfolder) => {
   // eslint-disable-next-line newline-per-chained-call
   const data = await sharp(buffer)
     .resize(width, height)
@@ -43,13 +43,16 @@ exports.resizeAndSave = async (buffer, { width, height }, format) => {
     .toBuffer();
 
   return new Promise((resolve, reject) => {
-    const stream = cld.v2.uploader.upload_stream({ folder: 'chatty_pal' }, (error, result) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve(result);
-      }
-    });
+    const stream = cld.v2.uploader.upload_stream(
+      { folder: `chatty_pal/${subfolder}` },
+      (error, result) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(result);
+        }
+      },
+    );
 
     bufferToStream(data).pipe(stream);
   });
