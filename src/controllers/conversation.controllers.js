@@ -1,6 +1,5 @@
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
-const Conversation = require('../models/conversation.models');
 const Message = require('../models/message.models');
 const User = require('../models/user.models');
 const Participant = require('../models/participant.models');
@@ -14,6 +13,7 @@ const {
   findConversationId,
   checkIfConversationWasDeletedAndRestoreIfYes,
   createConversation,
+  findConversation,
 } = require('../utils/conversation');
 
 const replaceConversationNamesWithUserName = async (conversationList, userId) =>
@@ -99,13 +99,13 @@ exports.getAllConversations = catchAsync(async (req, res, next) => {
 
 exports.createConversation = catchAsync(async (req, res, next) => {
   const { user } = req;
-  const { userId: userToInviteId } = req.params;
+  const { userId: receiverId } = req.params;
 
-  if (isUserIdsTheSame(user.dataValues.id.toString(), userToInviteId)) {
+  if (isUserIdsTheSame(user.dataValues.id.toString(), receiverId)) {
     return next(new AppError("You can't start conversation with yourself", 400));
   }
 
-  const receiver = await getReceiverIfExists(userToInviteId);
+  const receiver = await getReceiverIfExists(receiverId);
   if (!receiver) {
     return next(new AppError('There is no user with such id', 404));
   }
@@ -146,11 +146,7 @@ exports.deleteConversation = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { conversationId } = req.params;
 
-  const conversation = await Conversation.findByPk(conversationId, {
-    include: {
-      model: Message,
-    },
-  });
+  const conversation = await findConversation(conversationId, Message);
 
   if (!conversation) {
     return next(new AppError('There is no such conversation', 404));
@@ -226,7 +222,7 @@ exports.editConversation = catchAsync(async (req, res, next) => {
   const { conversationId } = req.params;
   const { title } = req.body;
 
-  const conversation = await Conversation.findByPk(conversationId);
+  const conversation = await findConversation(conversationId);
   if (!(await conversation.hasUser(user.dataValues.id))) {
     return next(new AppError('This conversation is not your', 403));
   }
@@ -246,7 +242,7 @@ exports.editConversation = catchAsync(async (req, res, next) => {
 exports.addUserToGroupConversation = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { userId: userToInviteId, conversationId } = req.params;
-  const conversation = await Conversation.findByPk(conversationId);
+  const conversation = await findConversation(conversationId);
 
   if (!conversation) {
     return next(new AppError('There is no conversation with such id', 404));
@@ -278,7 +274,7 @@ exports.addUserToGroupConversation = catchAsync(async (req, res, next) => {
 exports.removeUserFromGroupConversation = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { userId: userToRemoveId, conversationId } = req.params;
-  const conversation = await Conversation.findByPk(conversationId);
+  const conversation = await findConversation(conversationId);
 
   if (!conversation) {
     return next(new AppError('There is no conversation with such id', 404));
@@ -314,7 +310,7 @@ exports.removeUserFromGroupConversation = catchAsync(async (req, res, next) => {
 exports.exitFromGroupConversation = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { conversationId } = req.params;
-  const conversation = await Conversation.findByPk(conversationId);
+  const conversation = await findConversation(conversationId);
 
   if (!conversation) {
     return next(new AppError('There is no conversation with such id', 404));
@@ -340,7 +336,7 @@ exports.exitFromGroupConversation = catchAsync(async (req, res, next) => {
 exports.joinGroupConversation = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { conversationId } = req.params;
-  const conversation = await Conversation.findByPk(conversationId);
+  const conversation = await findConversation(conversationId);
 
   if (!conversation) {
     return next(new AppError('There is no conversation with such id', 404));
@@ -361,7 +357,7 @@ exports.joinGroupConversation = catchAsync(async (req, res, next) => {
 
 exports.getListOfConversationParticipants = catchAsync(async (req, res, next) => {
   const { conversationId } = req.params;
-  const conversation = await Conversation.findByPk(conversationId);
+  const conversation = await findConversation(conversationId);
 
   if (!conversation) {
     return next(new AppError('There is no conversation with such id', 404));
@@ -385,7 +381,7 @@ exports.changeUserRoleInConversation = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { userId: userToChangeRoleId, conversationId } = req.params;
   const { role } = req.body;
-  const conversation = await Conversation.findByPk(conversationId);
+  const conversation = await findConversation(conversationId);
 
   if (!conversation) {
     return next(new AppError('There is no conversation with such id', 404));

@@ -15,7 +15,7 @@ const findIfConversationExists = (arr1, arr2) => {
     }
   }
 
-  return false;
+  return null;
 };
 
 exports.isUserIdsTheSame = (userId, userToInviteId) => {
@@ -28,7 +28,7 @@ exports.getReceiverIfExists = async (userToInviteId) => {
   const receiver = await User.findByPk(userToInviteId);
 
   if (!receiver) {
-    return false;
+    return null;
   }
   return receiver;
 };
@@ -67,7 +67,7 @@ exports.checkIfConversationWasDeletedAndRestoreIfYes = async (userId, conversati
   return true;
 };
 
-exports.createConversation = async (userId, userToInviteId, { title, type } = {}) => {
+exports.createConversation = async (userId, receiverId, { title, type } = {}) =>
   await sequelize.transaction(async () => {
     const conversation = await Conversation.create({
       type,
@@ -75,13 +75,16 @@ exports.createConversation = async (userId, userToInviteId, { title, type } = {}
       title,
     });
     let creatorRole;
-    if (!userToInviteId) {
+    if (!receiverId) {
       creatorRole = 'owner';
     }
     conversation.addUser(userId, { through: { role: creatorRole } });
-    if (userToInviteId) {
-      conversation.addUser(userToInviteId);
+    if (receiverId) {
+      conversation.addUser(receiverId);
     }
     await conversation.save();
+    return conversation;
   });
-};
+
+exports.findConversation = async (conversationId, includeModel) =>
+  await Conversation.findByPk(conversationId, includeModel && { include: { model: includeModel } });

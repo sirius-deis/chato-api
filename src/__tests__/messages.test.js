@@ -361,4 +361,5 @@ describe('/messages route', () => {
         .end(done);
     });
   });
+  describe('delete message controller', () => {});
 });

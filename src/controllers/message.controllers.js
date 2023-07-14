@@ -3,10 +3,12 @@ const AppError = require('../utils/appError');
 const Message = require('../models/message.models');
 const DeletedMessage = require('../models/deletedMessage.models');
 const { Sequelize, sequelize } = require('../db/db.config');
-const Conversation = require('../models/conversation.models');
 const MessageReaction = require('../models/messageReaction.models');
 const Attachment = require('../models/attachment.models');
 const { resizeAndSave } = require('../api/file');
+const { findConversation } = require('../utils/conversation');
+const { createMessage, findOneMessage } = require('../utils/message');
+const { isUserBlockedByAnotherUser } = require('../utils/user');
 
 const filterDeletedMessages = async (userId, ...messages) => {
   const deletedMessages = await DeletedMessage.findAll({
@@ -125,7 +127,7 @@ exports.addMessage = catchAsync(async (req, res, next) => {
   const { conversationId } = req.params;
   const { message, repliedMessageId } = req.body;
 
-  const conversation = await Conversation.findByPk(conversationId);
+  const conversation = await findConversation(conversationId);
 
   if (!conversation) {
     return next(new AppError('There is no conversation with such id', 404));
@@ -139,58 +141,28 @@ exports.addMessage = catchAsync(async (req, res, next) => {
     const receiver = participants.find(
       (participant) => participant.dataValues.id !== user.dataValues.id,
     );
-    const blockList = await receiver.getBlocker();
 
-    if (blockList.find((blockedUser) => blockedUser.dataValues.id === user.dataValues.id)) {
+    if (await isUserBlockedByAnotherUser(user.dataValues.id, receiver)) {
       return next(new AppError('You were blocked by selected user', 400));
     }
   } else {
     //TODO: add a block list for group chats
   }
 
-  const repliedMessage = await Message.findByPk(repliedMessageId);
-
-  if (repliedMessageId && !repliedMessage) {
-    return next(new AppError('There is no message to reply with such id', 400));
-  }
-
-  let deletedMessage;
-
   if (repliedMessageId) {
-    deletedMessage = await DeletedMessage.findOne({
-      where: Sequelize.and(
-        {
-          userId: user.dataValues.id,
-        },
-        {
-          messageId: repliedMessageId,
-        },
-      ),
-    });
-  }
+    const repliedMessage = await Message.findByPk(repliedMessageId);
 
-  if (deletedMessage) {
-    return next(new AppError('There is no message to reply with such id', 400));
-  }
-
-  await sequelize.transaction(async () => {
-    await Message.create({
-      conversationId: conversationId,
-      senderId: user.dataValues.id,
-      message,
-      repliedMessageId,
-    });
-    //TODO: add cloud storage and store attachments there
-    if (files) {
-      await Promise.all(
-        files.map(async (file) => {
-          const path = '';
-          await resizeAndSave(file.buffer, { width: 1024, height: 1024 }, 'png', path);
-          return Message.addAttachment({ fileUrl: path });
-        }),
-      );
+    if (!repliedMessage) {
+      return next(new AppError('There is no message to reply with such id', 400));
     }
-  });
+
+    const deletedMessageToReply = findOneMessage(user.dataValues.id, repliedMessageId);
+    if (deletedMessageToReply) {
+      return next(new AppError('There is no message to reply with such id', 400));
+    }
+  }
+
+  await createMessage(conversationId, user.dataValues.id, message, repliedMessageId, files);
 
   res.status(201).json({ message: 'Your message was sent successfully' });
 });
