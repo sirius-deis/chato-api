@@ -67,7 +67,7 @@ exports.checkIfConversationWasDeletedAndRestoreIfYes = async (userId, conversati
   return true;
 };
 
-exports.createConversation = async (userId, userToInviteId, { title, type = 'private' } = {}) => {
+exports.createConversation = async (userId, userToInviteId, { title, type } = {}) => {
   await sequelize.transaction(async () => {
     const conversation = await Conversation.create({
       type,

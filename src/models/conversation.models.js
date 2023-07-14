@@ -12,7 +12,8 @@ const Conversation = sequelize.define('conversations', {
     type: DataTypes.STRING(40),
   },
   type: {
-    type: DataTypes.ENUM('private', 'groupe', 'channel'),
+    type: DataTypes.ENUM('private', 'group', 'channel'),
+    defaultValue: 'private',
     allowNull: false,
   },
   pictures: {

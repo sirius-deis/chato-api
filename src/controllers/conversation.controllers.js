@@ -3,6 +3,7 @@ const AppError = require('../utils/appError');
 const Conversation = require('../models/conversation.models');
 const Message = require('../models/message.models');
 const User = require('../models/user.models');
+const Participant = require('../models/participant.models');
 const { Sequelize, sequelize } = require('../db/db.config');
 const DeletedMessage = require('../models/deletedMessage.models');
 const DeletedConversation = require('../models/deletedConversation.models');
@@ -46,6 +47,8 @@ const addAmountOfUnreadMessages = async (conversationList) =>
       return conversation;
     }),
   );
+
+const checkConversationType = (conversation, type) => conversation.dataValues.type === type;
 
 exports.getAllConversations = catchAsync(async (req, res, next) => {
   const { user } = req;
@@ -132,7 +135,6 @@ exports.createConversation = catchAsync(async (req, res, next) => {
 exports.createGroupConversation = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { title } = req.body;
-
   await createConversation(user.dataValues.id, null, { title, type: 'group' });
 
   res.status(201).json({
@@ -292,7 +294,7 @@ exports.removeUserFromGroupConversation = catchAsync(async (req, res, next) => {
     return next(new AppError('There is no user with such id', 404));
   }
 
-  if (conversation.dataValues.type === 'private') {
+  if (!checkConversationType(conversation, 'group')) {
     return next(new AppError("You can't perform such an operation to private conversation", 400));
   }
 
@@ -318,7 +320,7 @@ exports.exitFromGroupConversation = catchAsync(async (req, res, next) => {
     return next(new AppError('There is no conversation with such id', 404));
   }
 
-  if (conversation.dataValues.type === 'private') {
+  if (!checkConversationType(conversation, 'group')) {
     return next(new AppError("You can't perform such an operation to private conversation", 400));
   }
 
@@ -344,7 +346,7 @@ exports.joinGroupConversation = catchAsync(async (req, res, next) => {
     return next(new AppError('There is no conversation with such id', 404));
   }
 
-  if (conversation.dataValues.type === 'private') {
+  if (!checkConversationType(conversation, 'group')) {
     return next(new AppError("You can't perform such an operation to private conversation", 400));
   }
 
@@ -354,5 +356,49 @@ exports.joinGroupConversation = catchAsync(async (req, res, next) => {
 
   res.status(200).json({
     message: 'You have joined conversation successfully',
+  });
+});
+
+//TODO: get conversation participants
+
+exports.changeUserRoleInConversation = catchAsync(async (req, res, next) => {
+  const { user } = req;
+  const { userId: userToChangeRoleId, conversationId } = req.params;
+  const { role } = req.body;
+  const conversation = await Conversation.findByPk(conversationId);
+
+  if (!conversation) {
+    return next(new AppError('There is no conversation with such id', 404));
+  }
+
+  if (!checkConversationType(conversation, 'group')) {
+    return next(new AppError("You can't perform such an operation to private conversation", 400));
+  }
+
+  if (!['user', 'admin', 'owner'].includes(role)) {
+    return next(new AppError('Incorrect role', 400));
+  }
+
+  const participants = await conversation.getUsers({
+    where: {
+      id: user.dataValues.id,
+    },
+  });
+
+  const mainParticipant = participants[0].participants.dataValues;
+
+  if (['user', 'admin'].includes(mainParticipant.role)) {
+    return next(new AppError("You can't change users role with your current role", 403));
+  }
+
+  await Participant.update(
+    { role },
+    {
+      where: Sequelize.and({ userId: userToChangeRoleId }, { conversationId }),
+    },
+  );
+
+  res.status(200).json({
+    message: 'User role was changed successfully',
   });
 });
