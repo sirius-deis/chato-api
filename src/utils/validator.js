@@ -11,7 +11,11 @@ exports.isWithLength = ({ field, min = 4, max, isOptional = false }) =>
   body(field)
     .optional(isOptional)
     .isLength({ min, max: max ?? undefined })
-    .withMessage(`Field: ${field} can't be shorter than ${min} length${max ? ` and longer than ${max} length` : ''}`)
+    .withMessage(
+      `Field: ${field} can't be shorter than ${min} length${
+        max ? ` and longer than ${max} length` : ''
+      }`,
+    )
     .escape();
 
 exports.arePasswordsTheSame = (password1, password2) => password1 === password2;

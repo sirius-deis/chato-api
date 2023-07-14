@@ -13,6 +13,7 @@ module.exports = (server) => {
   io.on('connection', (socket) => {
     const { user } = socket;
     listOfUsers.set(user.id, socket);
+    socket.broadcast.emit('online', user.id);
 
     socket.on('client_message', ({ message, conversationId, receiverId }) => {
       if (user.dataValues.id.toString() === receiverId) {
@@ -23,6 +24,7 @@ module.exports = (server) => {
     });
 
     socket.on('disconnect', () => {
+      socket.broadcast.emit('offline', listOfUsers.get(user.id));
       listOfUsers.delete(user.id);
     });
 
