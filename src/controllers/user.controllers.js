@@ -7,7 +7,7 @@ const { arePasswordsTheSame } = require('../utils/validator');
 const sendMail = require('../api/email');
 const { sequelize } = require('../db/db.config');
 const { setValue } = require('../db/redis.config');
-const { resizeAndSave } = require('../api/file');
+const { resizeAndSave } = require('../api/fileUpload');
 
 const User = require('../models/user.models');
 const ActivateToken = require('../models/activateToken.models');
@@ -167,6 +167,7 @@ exports.getUser = catchAsync(async (req, res, next) => {
           email: user.dataValues.email,
           userName: user.get('userName'),
           bio: user.dataValues.bio,
+          photos: user.get('photos'),
         },
       },
     });
@@ -184,6 +185,7 @@ exports.getUser = catchAsync(async (req, res, next) => {
         id: retrievedUser.dataValues.id,
         userName: retrievedUser.get('userName'),
         bio: retrievedUser.dataValues.bio,
+        photos: user.get('photos'),
       },
     },
   });
@@ -422,14 +424,15 @@ exports.report = catchAsync(async (req, res, next) => {
   res.status(200).json({ message: 'User account was reported successfully' });
 });
 
-//TODO: add cloud storage
 exports.addProfilePhoto = catchAsync(async (req, res, next) => {
   const { user, file } = req;
-  const { buffer, originalName } = file;
-  const timestamp = new Date().toISOString();
-  const fileName = `${timestamp}-${originalName}`;
-  const filePath = `${__dirname}/${fileName}`;
-  await resizeAndSave(buffer, { width: 100, height: 100 }, 'jpeg', filePath);
+  const { buffer } = file;
+
+  const cldResponse = await resizeAndSave(buffer, { width: 100, height: 100 }, 'jpeg');
+
+  user.set('photos', cldResponse.secure_url);
+
+  await user.save();
   res.status(200).json({ message: 'Photo was added successfully' });
 });
 

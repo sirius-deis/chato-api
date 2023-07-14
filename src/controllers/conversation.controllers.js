@@ -307,7 +307,7 @@ exports.removeUserFromGroupConversation = catchAsync(async (req, res, next) => {
   });
 });
 
-exports.exitFromGroupConversation = catchAsync(async (req, res, next) => {
+exports.leaveGroupConversation = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { conversationId } = req.params;
   const conversation = await findConversation(conversationId);

@@ -7,13 +7,13 @@ const {
   editConversation,
   addUserToGroupConversation,
   removeUserFromGroupConversation,
-  exitFromGroupConversation,
+  leaveGroupConversation,
   joinGroupConversation,
   changeUserRoleInConversation,
   getListOfConversationParticipants,
 } = require('../controllers/conversation.controllers');
 const { isLoggedIn } = require('../middlewares/auth.middlewares');
-const { uploadFile } = require('../api/file');
+const { uploadFile } = require('../api/fileUpload');
 const { isNotEmpty } = require('../utils/validator');
 const validationMiddleware = require('../middlewares/validation.middlewares');
 const messageRouter = require('./message.routes');
@@ -47,7 +47,7 @@ conversationRouter
 
 conversationRouter.patch('/:conversationId/add', addUserToGroupConversation);
 conversationRouter.patch('/:conversationId/remove', removeUserFromGroupConversation);
-conversationRouter.patch('/:conversationId/exit', exitFromGroupConversation);
+conversationRouter.patch('/:conversationId/exit', leaveGroupConversation);
 conversationRouter.patch('/:conversationId/join', joinGroupConversation);
 conversationRouter.patch('/:conversationId/role', changeUserRoleInConversation);
 

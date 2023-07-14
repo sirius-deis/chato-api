@@ -24,6 +24,7 @@ const conversationRouter = require('./conversation.routes');
 const { isEmail, isWithLength, isNotEmpty } = require('../utils/validator');
 const { isLoggedIn, inAuthorized } = require('../middlewares/auth.middlewares');
 const validationMiddleware = require('../middlewares/validation.middlewares');
+const { uploadFile } = require('../api/fileUpload');
 
 const userRouter = express.Router();
 
@@ -113,8 +114,8 @@ userRouter.post(
   deactivate,
 );
 
-userRouter.patch('/add-photo', addProfilePhoto);
-userRouter.patch('/delete-photo', deleteProfilePhoto);
+userRouter.patch('/add-photo', uploadFile('photo'), addProfilePhoto);
+userRouter.patch('/delete-photo/:path', deleteProfilePhoto);
 
 userRouter.patch('/report/:userId', report);
 

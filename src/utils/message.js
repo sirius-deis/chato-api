@@ -1,7 +1,7 @@
 const Message = require('../models/message.models');
 const DeletedMessage = require('../models/deletedMessage.models');
 const { Sequelize, sequelize } = require('../db/db.config');
-const { resizeAndSave } = require('../api/file');
+const { resizeAndSave } = require('../api/fileUpload');
 
 exports.createMessage = async (conversationId, senderId, message, repliedMessageId, files) =>
   await sequelize.transaction(async () => {

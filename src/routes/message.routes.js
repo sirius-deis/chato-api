@@ -11,7 +11,7 @@ const {
 const { isLoggedIn } = require('../middlewares/auth.middlewares');
 const { isNotEmpty } = require('../utils/validator');
 const validationMiddleware = require('../middlewares/validation.middlewares');
-const { uploadFiles } = require('../api/file');
+const { uploadFiles } = require('../api/fileUpload');
 
 const messageRouter = express.Router({ mergeParams: true });
 

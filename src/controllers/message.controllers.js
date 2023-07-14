@@ -182,6 +182,7 @@ exports.editMessage = catchAsync(async (req, res, next) => {
   res.status(200).json({ message: 'Your message was edited successfully' });
 });
 
+//TODO: refactor controller to accept ids list and delete many messages
 exports.deleteMessage = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { conversationId, messageId } = req.params;
@@ -307,3 +308,6 @@ exports.reactOnMessage = catchAsync(async (req, res, next) => {
     res.status(201).send();
   }
 });
+
+//TODO: add a controller for forwarding messages
+exports.forwardMessages = catchAsync(async (req, res, next) => {});
