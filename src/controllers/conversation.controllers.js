@@ -241,7 +241,7 @@ exports.editConversation = catchAsync(async (req, res, next) => {
   });
 });
 
-exports.addUserToConversation = catchAsync(async (req, res, next) => {
+exports.addUserToGroupConversation = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { userId: userToInviteId, conversationId } = req.params;
   const conversation = await Conversation.findByPk(conversationId);
@@ -273,7 +273,7 @@ exports.addUserToConversation = catchAsync(async (req, res, next) => {
   });
 });
 
-exports.removeUserFromConversation = catchAsync(async (req, res, next) => {
+exports.removeUserFromGroupConversation = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { userId: userToRemoveId, conversationId } = req.params;
   const conversation = await Conversation.findByPk(conversationId);
@@ -309,7 +309,7 @@ exports.removeUserFromConversation = catchAsync(async (req, res, next) => {
   });
 });
 
-exports.exitFromConversation = catchAsync(async (req, res, next) => {
+exports.exitFromGroupConversation = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { conversationId } = req.params;
   const conversation = await Conversation.findByPk(conversationId);
@@ -331,6 +331,28 @@ exports.exitFromConversation = catchAsync(async (req, res, next) => {
   await conversation.save();
 
   res.status(200).json({
-    message: 'User exited from conversation successfully',
+    message: 'You have exited from conversation successfully',
+  });
+});
+
+exports.joinGroupConversation = catchAsync(async (req, res, next) => {
+  const { user } = req;
+  const { conversationId } = req.params;
+  const conversation = await Conversation.findByPk(conversationId);
+
+  if (!conversation) {
+    return next(new AppError('There is no conversation with such id', 404));
+  }
+
+  if (conversation.dataValues.type === 'private') {
+    return next(new AppError("You can't perform such an operation to private conversation", 400));
+  }
+
+  conversation.addUser(user.dataValues.id, { through: { role: 'user' } });
+
+  await conversation.save();
+
+  res.status(200).json({
+    message: 'You have joined conversation successfully',
   });
 });

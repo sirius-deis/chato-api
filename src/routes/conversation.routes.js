@@ -5,9 +5,9 @@ const {
   createGroupConversation,
   deleteConversation,
   editConversation,
-  addUserToConversation,
-  removeUserFromConversation,
-  exitFromConversation,
+  addUserToGroupConversation,
+  removeUserFromGroupConversation,
+  exitFromGroupConversation,
 } = require('../controllers/conversation.controllers');
 const { isLoggedIn } = require('../middlewares/auth.middlewares');
 const { uploadFile } = require('../api/file');
@@ -28,8 +28,8 @@ conversationRouter.route('/group').post(uploadFile('image'), createGroupConversa
 
 conversationRouter.route('/:conversationId').patch(editConversation).delete(deleteConversation);
 
-conversationRouter.patch('/:conversationId/add', addUserToConversation);
-conversationRouter.patch('/:conversationId/remove', removeUserFromConversation);
-conversationRouter.patch('/:conversationId/exit', exitFromConversation);
+conversationRouter.patch('/:conversationId/add', addUserToGroupConversation);
+conversationRouter.patch('/:conversationId/remove', removeUserFromGroupConversation);
+conversationRouter.patch('/:conversationId/exit', exitFromGroupConversation);
 
 module.exports = conversationRouter;
