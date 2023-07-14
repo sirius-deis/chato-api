@@ -359,7 +359,27 @@ exports.joinGroupConversation = catchAsync(async (req, res, next) => {
   });
 });
 
-//TODO: get conversation participants
+exports.getListOfConversationParticipants = catchAsync(async (req, res, next) => {
+  const { conversationId } = req.params;
+  const conversation = await Conversation.findByPk(conversationId);
+
+  if (!conversation) {
+    return next(new AppError('There is no conversation with such id', 404));
+  }
+
+  const participants = await conversation.getUsers();
+
+  if (participants.length < 1) {
+    return next(new AppError('There is no participants in this conversation', 404));
+  }
+
+  res.status(200).json({
+    message: 'Conversation participants were found successfully',
+    data: {
+      participants,
+    },
+  });
+});
 
 exports.changeUserRoleInConversation = catchAsync(async (req, res, next) => {
   const { user } = req;

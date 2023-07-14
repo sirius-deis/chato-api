@@ -10,6 +10,7 @@ const {
   exitFromGroupConversation,
   joinGroupConversation,
   changeUserRoleInConversation,
+  getListOfConversationParticipants,
 } = require('../controllers/conversation.controllers');
 const { isLoggedIn } = require('../middlewares/auth.middlewares');
 const { uploadFile } = require('../api/file');
@@ -28,6 +29,8 @@ conversationRouter
   .get(getAllConversations)
   .post(uploadFile('image'), createConversation);
 
+conversationRouter.route('/list').post(uploadFile('image'), getListOfConversationParticipants);
+
 conversationRouter
   .route('/group')
   .post(
@@ -37,7 +40,10 @@ conversationRouter
     createGroupConversation,
   );
 
-conversationRouter.route('/:conversationId').patch(editConversation).delete(deleteConversation);
+conversationRouter
+  .route('/:conversationId')
+  .patch(isNotEmpty({ field: 'title' }), validationMiddleware, editConversation)
+  .delete(deleteConversation);
 
 conversationRouter.patch('/:conversationId/add', addUserToGroupConversation);
 conversationRouter.patch('/:conversationId/remove', removeUserFromGroupConversation);
