@@ -1,7 +1,7 @@
 const User = require('./models/user.models');
 const ActivateToken = require('./models/activateToken.models');
 const ResetToken = require('./models/resetToken.models');
-const Conversation = require('./models/conversation.models');
+const Chat = require('./models/chat.models');
 const Participant = require('./models/participant.models');
 const Message = require('./models/message.models');
 const DeletedMessage = require('./models/deletedMessage.models');
@@ -9,6 +9,7 @@ const DeletedConversation = require('./models/deletedConversation.models');
 const MessageReaction = require('./models/messageReaction.models');
 const Attachment = require('./models/attachment.models');
 const Picture = require('./models/picture.models');
+const GroupBlockList = require('./models/groupBlockList');
 
 User.hasOne(ActivateToken, { onDelete: 'cascade', foreignKey: 'userId' });
 ActivateToken.belongsTo(User, { foreignKey: 'userId' });
@@ -16,14 +17,14 @@ ActivateToken.belongsTo(User, { foreignKey: 'userId' });
 User.hasOne(ResetToken, { onDelete: 'cascade', foreignKey: 'userId' });
 ResetToken.belongsTo(User, { foreignKey: 'userId' });
 
-User.belongsToMany(Conversation, { through: Participant, foreignKey: 'userId' });
-Conversation.belongsToMany(User, { through: Participant, foreignKey: 'conversationId' });
+User.belongsToMany(Chat, { through: Participant, foreignKey: 'userId' });
+Chat.belongsToMany(User, { through: Participant, foreignKey: 'chatId' });
 
-User.hasMany(Conversation, { onDelete: 'cascade', foreignKey: 'creatorId' });
-Conversation.belongsTo(User, { foreignKey: 'creatorId' });
+User.hasMany(Chat, { onDelete: 'cascade', foreignKey: 'creatorId' });
+Chat.belongsTo(User, { foreignKey: 'creatorId' });
 
-Conversation.hasMany(Message, { onDelete: 'cascade', foreignKey: 'conversationId' });
-Message.belongsTo(Conversation, { foreignKey: 'conversationId' });
+Chat.hasMany(Message, { onDelete: 'cascade', foreignKey: 'chatId' });
+Message.belongsTo(Chat, { foreignKey: 'chatId' });
 
 User.hasMany(Message, { onDelete: 'cascade', foreignKey: 'senderId' });
 Message.belongsTo(User, { foreignKey: 'senderId' });
@@ -31,10 +32,10 @@ Message.belongsTo(User, { foreignKey: 'senderId' });
 Message.hasMany(Attachment, { onDelete: 'cascade', foreignKey: 'messageId' });
 Attachment.belongsTo(Message, { foreignKey: 'messageId' });
 
-User.belongsToMany(Conversation, { through: DeletedConversation, foreignKey: 'userId' });
-Conversation.belongsToMany(User, {
+User.belongsToMany(Chat, { through: DeletedConversation, foreignKey: 'userId' });
+Chat.belongsToMany(User, {
   through: DeletedConversation,
-  foreignKey: 'conversationId',
+  foreignKey: 'chatId',
 });
 
 User.belongsToMany(Message, { through: DeletedMessage, foreignKey: 'userId' });

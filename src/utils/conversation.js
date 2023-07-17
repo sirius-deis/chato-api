@@ -1,6 +1,6 @@
 const User = require('../models/user.models');
 const DeletedConversation = require('../models/deletedConversation.models');
-const Conversation = require('../models/conversation.models');
+const Chat = require('../models/chat.models');
 const { sequelize } = require('../db/db.config');
 
 const findIfConversationExists = (arr1, arr2) => {
@@ -18,14 +18,14 @@ const findIfConversationExists = (arr1, arr2) => {
   return null;
 };
 
-exports.isUserIdsTheSame = (userId, userToInviteId) => {
-  if (userId === userToInviteId) {
+exports.isUserIdsTheSame = (userId, secondUserId) => {
+  if (userId === secondUserId) {
     return true;
   }
 };
 
-exports.getReceiverIfExists = async (userToInviteId) => {
-  const receiver = await User.findByPk(userToInviteId);
+exports.getReceiverIfExists = async (secondUserId) => {
+  const receiver = await User.findByPk(secondUserId);
 
   if (!receiver) {
     return null;
@@ -33,29 +33,26 @@ exports.getReceiverIfExists = async (userToInviteId) => {
   return receiver;
 };
 
-exports.isUserBlocked = async (userId, userToInvite) => {
-  const blockList = await userToInvite.getBlocker();
+exports.isUserBlocked = async (userId, secondUser) => {
+  const blockList = await secondUser.getBlocker();
 
   if (blockList.find((blockedUser) => blockedUser.dataValues.id.toString() === userId)) {
     return true;
   }
 };
 
-exports.findConversationId = async (user, userToInvite) => {
-  const conversationsArr = await Promise.all([
-    user.getConversations(),
-    userToInvite.getConversations(),
-  ]);
+exports.findConversationId = async (user, secondUser) => {
+  const conversationsArr = await Promise.all([user.getChats(), secondUser.getChats()]);
 
   const conversationId = findIfConversationExists(...conversationsArr);
 
   return conversationId;
 };
 
-exports.checkIfConversationWasDeletedAndRestoreIfYes = async (userId, conversationId) => {
+exports.checkIfConversationWasDeletedAndRestoreIfYes = async (userId, chatId) => {
   const deletedConversation = await DeletedConversation.findOne({
     where: {
-      conversationId,
+      chatId,
       userId,
     },
   });
@@ -67,24 +64,24 @@ exports.checkIfConversationWasDeletedAndRestoreIfYes = async (userId, conversati
   return true;
 };
 
-exports.createConversation = async (userId, receiverId, { title, type } = {}) =>
+exports.createChat = async (userId, receiverId, { title, type } = {}) =>
   await sequelize.transaction(async () => {
-    const conversation = await Conversation.create({
+    const chat = await Chat.create({
       type,
       creatorId: userId,
       title,
     });
     let creatorRole;
-    if (!receiverId) {
+    if (type === 'group') {
       creatorRole = 'owner';
     }
-    conversation.addUser(userId, { through: { role: creatorRole } });
+    chat.addUser(userId, { through: { role: creatorRole } });
     if (receiverId) {
-      conversation.addUser(receiverId);
+      chat.addUser(receiverId);
     }
-    await conversation.save();
-    return conversation;
+    await chat.save();
+    return chat;
   });
 
-exports.findConversation = async (conversationId, includeModel) =>
-  await Conversation.findByPk(conversationId, includeModel && { include: { model: includeModel } });
+exports.findChat = async (chatId, includeModel) =>
+  await Chat.findByPk(chatId, includeModel && { include: { model: includeModel } });

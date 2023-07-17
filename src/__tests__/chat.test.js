@@ -4,10 +4,10 @@ const app = require('../app');
 const { sequelize } = require('../db/db.config');
 const { redisConnect, redisDisconnect } = require('../db/redis.config');
 const User = require('../models/user.models');
-const Conversation = require('../models/conversation.models');
+const Chat = require('../models/chat.models');
 const DeletedConversation = require('../models/deletedConversation.models');
 
-const baseUrl = '/api/v1/conversations';
+const baseUrl = '/api/v1/chats';
 
 const createUser = async (text) =>
   await User.create({
@@ -32,7 +32,7 @@ describe('/conversations route', () => {
     await createUser('test3');
     await createUser('test4');
     const user5 = await createUser('test5');
-    const conversation = await Conversation.create({
+    const conversation = await Chat.create({
       type: 'private',
       creatorId: user1.dataValues.id,
       title: undefined,
@@ -66,7 +66,7 @@ describe('/conversations route', () => {
   describe('/ route for creating conversation', () => {
     it('should return 401 as user is not logged in', (done) => {
       request(app)
-        .post(`/api/v1/users/${1}/conversations`)
+        .post(`/api/v1/users/${1}/chats/private`)
         .set('Accept', 'application/json')
         .send({})
         .expect(401)
@@ -78,7 +78,7 @@ describe('/conversations route', () => {
     });
     it('should return 400 as user is trying to begin conversation with himself', (done) => {
       request(app)
-        .post(`/api/v1/users/${1}/conversations`)
+        .post(`/api/v1/users/${1}/chats/private`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token1}`)
@@ -92,7 +92,7 @@ describe('/conversations route', () => {
     });
     it('should return 404 as there is not such user', (done) => {
       request(app)
-        .post(`/api/v1/users/${1000}/conversations`)
+        .post(`/api/v1/users/${1000}/chats/private`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token1}`)
@@ -106,7 +106,7 @@ describe('/conversations route', () => {
     });
     it('should return 201 and create a conversation', (done) => {
       request(app)
-        .post(`/api/v1/users/${2}/conversations`)
+        .post(`/api/v1/users/${2}/chats/private`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token1}`)
@@ -120,7 +120,7 @@ describe('/conversations route', () => {
     });
     it('should return 400 as conversation with this user already exists', (done) => {
       request(app)
-        .post(`/api/v1/users/${2}/conversations`)
+        .post(`/api/v1/users/${2}/chats/private`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token1}`)
@@ -134,7 +134,7 @@ describe('/conversations route', () => {
     });
     it('should return 201 and create a conversation', (done) => {
       request(app)
-        .post(`/api/v1/users/${2}/conversations`)
+        .post(`/api/v1/users/${2}/chats/private`)
         .type('json')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token3}`)
@@ -172,7 +172,7 @@ describe('/conversations route', () => {
         .expect('Content-Type', /json/)
         .expect((res) => {
           expect(res.body.message).toBe("This user doesn't participate in any conversations");
-          expect(res.body.data.conversations).toEqual([]);
+          expect(res.body.data.chats).toEqual([]);
         })
         .end(done);
     });
@@ -187,8 +187,8 @@ describe('/conversations route', () => {
         .expect('Content-Type', /json/)
         .expect((res) => {
           expect(res.body.message).toBe('Conversations were found');
-          expect(res.body.data.conversations.length).toBe(1);
-          expect(res.body.data.conversations[0].creatorId).toBe(1);
+          expect(res.body.data.chats.length).toBe(1);
+          expect(res.body.data.chats[0].creatorId).toBe(1);
         })
         .end(done);
     });
@@ -240,7 +240,7 @@ describe('/conversations route', () => {
         .type('json')
         .set('Authorization', `Bearer ${token1}`)
         .send()
-        .expect(204)
+        .expect(200)
         .end(done);
     });
     it('should return 400 as conversation with provided id for current user is already deleted', (done) => {

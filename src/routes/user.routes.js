@@ -20,7 +20,7 @@ const {
   addProfilePhoto,
   deleteProfilePhoto,
 } = require('../controllers/user.controllers');
-const conversationRouter = require('./conversation.routes');
+const chatRouter = require('./chat.routes');
 const { isEmail, isWithLength, isNotEmpty } = require('../utils/validator');
 const { isLoggedIn, inAuthorized } = require('../middlewares/auth.middlewares');
 const validationMiddleware = require('../middlewares/validation.middlewares');
@@ -28,7 +28,7 @@ const { uploadFile } = require('../api/fileUpload');
 
 const userRouter = express.Router();
 
-userRouter.use('/:userId/conversations/', conversationRouter);
+userRouter.use('/:userId/chats/', chatRouter);
 
 userRouter.post(
   '/signup',

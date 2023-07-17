@@ -1,7 +1,7 @@
 const { Server } = require('socket.io');
 const auth = require('./auth');
 const Message = require('../models/message.models');
-const Conversation = require('../models/conversation.models');
+const Chat = require('../models/chat.models');
 const MessageReaction = require('../models/messageReaction.models');
 const { sequelize } = require('../db/db.config');
 const {
@@ -10,7 +10,7 @@ const {
   isUserBlocked,
   findConversationId,
   checkIfConversationWasDeletedAndRestoreIfYes,
-  createConversation,
+  createChat,
 } = require('../utils/conversation');
 const { isUserBlockedByAnotherUser } = require('../utils/user');
 const {
@@ -46,7 +46,7 @@ const createNewConversation = async (user, receiverId) => {
     return false;
   }
 
-  return await createConversation(user.dataValues.id, receiver.dataValues.id);
+  return await createChat(user.dataValues.id, receiver.dataValues.id);
 };
 
 const getParticipantsId = (participants, senderId) => {
@@ -73,12 +73,12 @@ module.exports = (server) => {
 
     socket.on(
       'send_message',
-      async ({ messageTest, isNew, conversationId, receiverId, repliedMessageId, files }) => {
+      async ({ messageTest, isNew, chatId, receiverId, repliedMessageId, files }) => {
         let conversation;
         if (isNew) {
           conversation = createNewConversation(user, receiverId);
         } else {
-          conversation = await Conversation.findByPk(conversationId);
+          conversation = await Chat.findByPk(chatId);
           if (!conversation) {
             return socket.emit('error_response', {
               message: 'Selected conversation does not exists',
@@ -128,7 +128,7 @@ module.exports = (server) => {
         }
 
         const createdMessage = await createMessage(
-          conversationId,
+          chatId,
           user.dataValues.id,
           messageTest,
           repliedMessageId,
@@ -145,8 +145,8 @@ module.exports = (server) => {
       },
     );
 
-    socket.on('edit_message', async ({ message, conversationId, messageId, files }) => {
-      const foundMessage = await findOneMessage(messageId, conversationId, {
+    socket.on('edit_message', async ({ message, chatId, messageId, files }) => {
+      const foundMessage = await findOneMessage(messageId, chatId, {
         senderId: user.dataValues.id,
       });
 
@@ -169,7 +169,7 @@ module.exports = (server) => {
 
       await addAttachments(foundMessage, files);
 
-      const participants = await (await foundMessage.getConversation()).getUsers();
+      const participants = await (await foundMessage.getChat()).getUsers();
 
       const receiversId = getParticipantsId(participants, user.dataValues.id);
 
@@ -197,8 +197,8 @@ module.exports = (server) => {
       io.to(receiverId).emit('unsend_message', { messageId: foundMessage.dataValues.id });
     });
 
-    socket.on('rate_message', async ({ conversationId, messageId, receiverId, reaction }) => {
-      const foundMessage = await findOneMessage(messageId, conversationId, {
+    socket.on('rate_message', async ({ chatId, messageId, reaction }) => {
+      const foundMessage = await findOneMessage(messageId, chatId, {
         senderId: user.dataValues.id,
       });
 
@@ -229,14 +229,14 @@ module.exports = (server) => {
         });
       }
 
-      const conversation = await Conversation.findByPk(conversationId);
-      if (!conversation) {
+      const chat = await Chat.findByPk(chatId);
+      if (!chat) {
         return socket.emit('error_response', {
           message: 'Selected conversation does not exists',
         });
       }
 
-      const participants = await conversation.getUsers();
+      const participants = await chat.getUsers();
 
       const receiversId = getParticipantsId(participants, user.dataValues.id);
 

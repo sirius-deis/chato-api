@@ -3,10 +3,10 @@ const DeletedMessage = require('../models/deletedMessage.models');
 const { Sequelize, sequelize } = require('../db/db.config');
 const { resizeAndSave } = require('../api/fileUpload');
 
-exports.createMessage = async (conversationId, senderId, message, repliedMessageId, files) =>
+exports.createMessage = async (chatId, senderId, message, repliedMessageId, files) =>
   await sequelize.transaction(async () => {
     const messageObj = await Message.create({
-      conversationId,
+      chatId,
       senderId,
       message,
       repliedMessageId,
@@ -68,7 +68,7 @@ exports.filterDeletedMessages = async (userId, ...messages) => {
   return messages.filter((message) => !deletedIds.includes(message.dataValues.id.toString()));
 };
 
-exports.findOneMessage = async (id, conversationId, ...rest) =>
+exports.findOneMessage = async (id, chatId, ...rest) =>
   await Message.findOne({
-    where: Sequelize.and({ id }, { conversationId }, ...rest),
+    where: Sequelize.and({ id }, { chatId }, ...rest),
   });

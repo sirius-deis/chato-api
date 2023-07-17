@@ -12,8 +12,8 @@ const {
   isUserBlocked,
   findConversationId,
   checkIfConversationWasDeletedAndRestoreIfYes,
-  createConversation,
-  findConversation,
+  createChat,
+  findChat,
 } = require('../utils/conversation');
 
 const replaceConversationNamesWithUserName = async (conversationList, userId) =>
@@ -48,12 +48,12 @@ const addAmountOfUnreadMessages = async (conversationList) =>
     }),
   );
 
-const checkConversationType = (conversation, type) => conversation.dataValues.type === type;
+const checkChatType = (chat, type) => chat.dataValues.type === type;
 
-exports.getAllConversations = catchAsync(async (req, res, next) => {
+exports.getAllChats = catchAsync(async (req, res, next) => {
   const { user } = req;
 
-  const conversations = await user.getConversations({
+  const chats = await user.getChats({
     include: [
       {
         model: Message,
@@ -63,11 +63,11 @@ exports.getAllConversations = catchAsync(async (req, res, next) => {
     ],
   });
 
-  if (!conversations.length) {
+  if (!chats.length) {
     return res.status(200).json({
       message: "This user doesn't participate in any conversations",
       data: {
-        conversations: [],
+        chats: [],
       },
     });
   }
@@ -80,24 +80,24 @@ exports.getAllConversations = catchAsync(async (req, res, next) => {
     (conversation) => conversation.dataValues.id.toString(),
     // eslint-disable-next-line function-paren-newline
   );
-  const conversationsWithoutDeleted = conversations.filter(
-    (conversation) => !deletedIds.includes(conversation.dataValues.id.toString()),
+  const chatsWithoutDeleted = chats.filter(
+    (chat) => !deletedIds.includes(chat.dataValues.id.toString()),
   );
-  const conversationsWithReplacedNames = await replaceConversationNamesWithUserName(
-    conversationsWithoutDeleted,
+  const chatsWithReplacedNames = await replaceConversationNamesWithUserName(
+    chatsWithoutDeleted,
     user.dataValues.id,
   );
-  const conversationList = await addAmountOfUnreadMessages(conversationsWithReplacedNames);
+  const chatList = await addAmountOfUnreadMessages(chatsWithReplacedNames);
 
   return res.status(200).json({
     message: 'Conversations were found',
     data: {
-      conversations: conversationList,
+      chats: chatList,
     },
   });
 });
 
-exports.createConversation = catchAsync(async (req, res, next) => {
+exports.createPrivateChat = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { userId: receiverId } = req.params;
 
@@ -125,34 +125,34 @@ exports.createConversation = catchAsync(async (req, res, next) => {
     return next(new AppError('Conversation with this user is already exists', 400));
   }
 
-  await createConversation(user.dataValues.id, receiver.dataValues.id);
+  await createChat(user.dataValues.id, receiver.dataValues.id);
 
   res.status(201).json({
     message: 'Conversation was created successfully',
   });
 });
 
-exports.createGroupConversation = catchAsync(async (req, res, next) => {
+exports.createGroupChat = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { title } = req.body;
-  await createConversation(user.dataValues.id, null, { title, type: 'group' });
+  await createChat(user.dataValues.id, null, { title, type: 'group' });
 
   res.status(201).json({
     message: 'Group conversation was created successfully',
   });
 });
 
-exports.deleteConversation = catchAsync(async (req, res, next) => {
+exports.deleteChat = catchAsync(async (req, res, next) => {
   const { user } = req;
-  const { conversationId } = req.params;
+  const { chatId } = req.params;
 
-  const conversation = await findConversation(conversationId, Message);
+  const chat = await findChat(chatId, Message);
 
-  if (!conversation) {
+  if (!chat) {
     return next(new AppError('There is no such conversation', 404));
   }
 
-  const participants = await conversation.getUsers();
+  const participants = await chat.getUsers();
   if (
     !participants.find(
       (participant) => participant.dataValues.id.toString() === user.dataValues.id.toString(),
@@ -161,7 +161,7 @@ exports.deleteConversation = catchAsync(async (req, res, next) => {
     return next(new AppError('There is no such conversation for selected user', 400));
   }
 
-  if (conversation.dataValues.type === 'group') {
+  if (chat.dataValues.type === 'group') {
     const userRole = participants.find(
       (participant) => participant.dataValues.id === user.dataValues.id,
     ).dataValues.role;
@@ -169,9 +169,9 @@ exports.deleteConversation = catchAsync(async (req, res, next) => {
       return next(new AppError('You are not an owner of this group', 403));
     }
     await sequelize.transaction(async () => {
-      await conversation.removeMessages();
-      await conversation.removeUsers();
-      await conversation.destroy();
+      await chat.removeMessages();
+      await chat.removeUsers();
+      await chat.destroy();
     });
     return res.status(200).json({
       message: 'Conversation was deleted successfully',
@@ -183,7 +183,7 @@ exports.deleteConversation = catchAsync(async (req, res, next) => {
       {
         userId: user.dataValues.id,
       },
-      { conversationId: conversationId },
+      { chatId },
     ),
   });
 
@@ -191,7 +191,7 @@ exports.deleteConversation = catchAsync(async (req, res, next) => {
     return next(new AppError('This conversation is already deleted', 400));
   }
 
-  const deletedMessagePromises = conversation.dataValues.messages.map(
+  const deletedMessagePromises = chat.dataValues.messages.map(
     (message) =>
       DeletedMessage.findOrCreate({
         where: {
@@ -209,7 +209,7 @@ exports.deleteConversation = catchAsync(async (req, res, next) => {
 
   await DeletedConversation.create({
     userId: user.dataValues.id,
-    conversationId: conversationId,
+    chatId,
   });
 
   res.status(200).json({
@@ -217,38 +217,38 @@ exports.deleteConversation = catchAsync(async (req, res, next) => {
   });
 });
 
-exports.editConversation = catchAsync(async (req, res, next) => {
+exports.editChat = catchAsync(async (req, res, next) => {
   const { user } = req;
-  const { conversationId } = req.params;
+  const { chatId } = req.params;
   const { title } = req.body;
 
-  const conversation = await findConversation(conversationId);
-  if (!(await conversation.hasUser(user.dataValues.id))) {
+  const chat = await findChat(chatId);
+  if (!(await chat.hasUser(user.dataValues.id))) {
     return next(new AppError('This conversation is not your', 403));
   }
 
-  if (title && conversation.dataValues.type === 'private') {
+  if (title && chat.dataValues.type === 'private') {
     return next(new AppError("The name of private conversation can't be changed", 400));
   }
 
-  conversation.dataValues.title = title;
-  await conversation.save();
+  chat.dataValues.title = title;
+  await chat.save();
 
   res.status(204).json({
     message: 'Conversation was edited successfully',
   });
 });
 
-exports.addUserToGroupConversation = catchAsync(async (req, res, next) => {
+exports.addUserToGroupChat = catchAsync(async (req, res, next) => {
   const { user } = req;
-  const { userId: userToInviteId, conversationId } = req.params;
-  const conversation = await findConversation(conversationId);
+  const { userId: userToInviteId, chatId } = req.params;
+  const chat = await findChat(chatId);
 
-  if (!conversation) {
+  if (!chat) {
     return next(new AppError('There is no conversation with such id', 404));
   }
 
-  if (!(await conversation.hasUser(user.dataValues.id))) {
+  if (!(await chat.hasUser(user.dataValues.id))) {
     return next(new AppError("You don't have access right for this operation", 403));
   }
 
@@ -258,29 +258,29 @@ exports.addUserToGroupConversation = catchAsync(async (req, res, next) => {
     return next(new AppError('There is no user with such id', 404));
   }
 
-  if (conversation.dataValues.type === 'private') {
+  if (chat.dataValues.type === 'private') {
     return next(new AppError("You can't add people to private conversation", 400));
   }
 
-  conversation.addUser(userToInviteId, { through: { role: 'user' } });
+  chat.addUser(userToInviteId, { through: { role: 'user' } });
 
-  await conversation.save();
+  await chat.save();
 
   res.status(200).json({
     message: 'User was added to conversation successfully',
   });
 });
 
-exports.removeUserFromGroupConversation = catchAsync(async (req, res, next) => {
+exports.removeUserFromGroupChat = catchAsync(async (req, res, next) => {
   const { user } = req;
-  const { userId: userToRemoveId, conversationId } = req.params;
-  const conversation = await findConversation(conversationId);
+  const { userId: userToRemoveId, chatId } = req.params;
+  const chat = await findChat(chatId);
 
-  if (!conversation) {
+  if (!chat) {
     return next(new AppError('There is no conversation with such id', 404));
   }
 
-  if (!(await conversation.hasUser(user.dataValues.id))) {
+  if (!(await chat.hasUser(user.dataValues.id))) {
     return next(new AppError("You don't have access right for this operation", 403));
   }
 
@@ -290,80 +290,80 @@ exports.removeUserFromGroupConversation = catchAsync(async (req, res, next) => {
     return next(new AppError('There is no user with such id', 404));
   }
 
-  if (!checkConversationType(conversation, 'group')) {
+  if (!checkChatType(chat, 'group')) {
     return next(new AppError("You can't perform such an operation to private conversation", 400));
   }
 
-  conversation.removeUser({
+  chat.removeUser({
     where: {
       userId: userToRemoveId,
     },
   });
 
-  await conversation.save();
+  await chat.save();
 
   res.status(200).json({
     message: 'User was removed from conversation successfully',
   });
 });
 
-exports.leaveGroupConversation = catchAsync(async (req, res, next) => {
+exports.leaveGroupChat = catchAsync(async (req, res, next) => {
   const { user } = req;
-  const { conversationId } = req.params;
-  const conversation = await findConversation(conversationId);
+  const { chatId } = req.params;
+  const chat = await findChat(chatId);
 
-  if (!conversation) {
+  if (!chat) {
     return next(new AppError('There is no conversation with such id', 404));
   }
 
-  if (!checkConversationType(conversation, 'group')) {
+  if (!checkChatType(chat, 'group')) {
     return next(new AppError("You can't perform such an operation to private conversation", 400));
   }
 
-  conversation.removeUser({
+  chat.removeUser({
     where: {
       userId: user.dataValues.id,
     },
   });
 
-  await conversation.save();
+  await chat.save();
 
   res.status(200).json({
     message: 'You have exited from conversation successfully',
   });
 });
 
-exports.joinGroupConversation = catchAsync(async (req, res, next) => {
+exports.joinGroupChat = catchAsync(async (req, res, next) => {
   const { user } = req;
-  const { conversationId } = req.params;
-  const conversation = await findConversation(conversationId);
+  const { chatId } = req.params;
+  const chat = await findChat(chatId);
 
-  if (!conversation) {
+  if (!chat) {
     return next(new AppError('There is no conversation with such id', 404));
   }
 
-  if (!checkConversationType(conversation, 'group')) {
+  if (!checkChatType(chat, 'group')) {
     return next(new AppError("You can't perform such an operation to private conversation", 400));
   }
 
-  conversation.addUser(user.dataValues.id, { through: { role: 'user' } });
+  chat.addUser(user.dataValues.id, { through: { role: 'user' } });
 
-  await conversation.save();
+  await chat.save();
 
   res.status(200).json({
     message: 'You have joined conversation successfully',
   });
 });
 
-exports.getListOfConversationParticipants = catchAsync(async (req, res, next) => {
-  const { conversationId } = req.params;
-  const conversation = await findConversation(conversationId);
+exports.getListOfChatParticipants = catchAsync(async (req, res, next) => {
+  const { chatId } = req.params;
+  const chat = await findChat(chatId);
 
-  if (!conversation) {
+  if (!chat) {
     return next(new AppError('There is no conversation with such id', 404));
   }
 
-  const participants = await conversation.getUsers();
+  const participants = await chat.getUsers();
 
   if (participants.length < 1) {
     return next(new AppError('There is no participants in this conversation', 404));
@@ -377,17 +377,17 @@ exports.getListOfConversationParticipants = catchAsync(async (req, res, next) =>
   });
 });
 
-exports.changeUserRoleInConversation = catchAsync(async (req, res, next) => {
+exports.changeUserRoleInChat = catchAsync(async (req, res, next) => {
   const { user } = req;
-  const { userId: userToChangeRoleId, conversationId } = req.params;
+  const { userId: userToChangeRoleId, chatId } = req.params;
   const { role } = req.body;
-  const conversation = await findConversation(conversationId);
+  const chat = await findChat(chatId);
 
-  if (!conversation) {
+  if (!chat) {
     return next(new AppError('There is no conversation with such id', 404));
   }
 
-  if (!checkConversationType(conversation, 'group')) {
+  if (!checkChatType(chat, 'group')) {
     return next(new AppError("You can't perform such an operation to private conversation", 400));
   }
 
@@ -395,7 +395,7 @@ exports.changeUserRoleInConversation = catchAsync(async (req, res, next) => {
     return next(new AppError('Incorrect role', 400));
   }
 
-  const participants = await conversation.getUsers({
+  const participants = await chat.getUsers({
     where: {
       id: user.dataValues.id,
     },
@@ -410,7 +410,7 @@ exports.changeUserRoleInConversation = catchAsync(async (req, res, next) => {
   await Participant.update(
     { role },
     {
-      where: Sequelize.and({ userId: userToChangeRoleId }, { conversationId }),
+      where: Sequelize.and({ userId: userToChangeRoleId }, { chatId }),
     },
   );
 

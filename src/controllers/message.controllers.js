@@ -5,8 +5,8 @@ const Message = require('../models/message.models');
 const DeletedMessage = require('../models/deletedMessage.models');
 const MessageReaction = require('../models/messageReaction.models');
 const Attachment = require('../models/attachment.models');
-const Conversation = require('../models/conversation.models');
-const { findConversation } = require('../utils/conversation');
+const Chat = require('../models/chat.models');
+const { findChat } = require('../utils/conversation');
 const {
   createMessage,
   findOneDeletedMessage,
@@ -29,12 +29,12 @@ const countDeletedMessagesById = (array) => {
 
 exports.getMessages = catchAsync(async (req, res, next) => {
   const { user } = req;
-  const { conversationId } = req.params;
+  const { chatId } = req.params;
   const { search, date } = req.query;
 
   const query = [
     {
-      conversationId: conversationId,
+      chatId,
     },
   ];
 
@@ -82,14 +82,14 @@ exports.getMessages = catchAsync(async (req, res, next) => {
 
 exports.getMessage = catchAsync(async (req, res, next) => {
   const { user } = req;
-  const { conversationId, messageId } = req.params;
+  const { chatId, messageId } = req.params;
 
   const message = await Message.findOne({
     where: Sequelize.and(
       {
         id: messageId,
       },
-      { conversationId },
+      { chatId },
     ),
     include: {
       model: Attachment,
@@ -101,7 +101,7 @@ exports.getMessage = catchAsync(async (req, res, next) => {
   }
 
   if (
-    !(await (await message.getConversation()).getUsers()).find(
+    !(await (await message.getChat()).getUsers()).find(
       (participant) => participant.dataValues.id === user.dataValues.id,
     )
   ) {
@@ -124,20 +124,20 @@ exports.getMessage = catchAsync(async (req, res, next) => {
 
 exports.addMessage = catchAsync(async (req, res, next) => {
   const { user, files } = req;
-  const { conversationId } = req.params;
+  const { chatId } = req.params;
   const { message, repliedMessageId } = req.body;
 
-  const conversation = await findConversation(conversationId);
+  const chat = await findChat(chatId);
 
-  if (!conversation) {
+  if (!chat) {
     return next(new AppError('There is no conversation with such id', 404));
   }
 
-  const participants = await conversation.getUsers();
+  const participants = await chat.getUsers();
   if (!participants.find((participant) => participant.dataValues.id === user.dataValues.id)) {
     return next(new AppError('There is no conversation with such id for this user', 404));
   }
-  if (conversation.dataValues.type === 'private') {
+  if (chat.dataValues.type === 'private') {
     const receiver = participants.find(
       (participant) => participant.dataValues.id !== user.dataValues.id,
     );
@@ -151,28 +151,28 @@ exports.addMessage = catchAsync(async (req, res, next) => {
 
   if (repliedMessageId) {
     const repliedMessage = await Message.findByPk(repliedMessageId);
-
     if (!repliedMessage) {
       return next(new AppError('There is no message to reply with such id', 400));
     }
 
-    const deletedMessageToReply = findOneDeletedMessage(user.dataValues.id, repliedMessageId);
+    const deletedMessageToReply = await findOneDeletedMessage(user.dataValues.id, repliedMessageId);
+
     if (deletedMessageToReply) {
       return next(new AppError('There is no message to reply with such id', 400));
     }
   }
 
-  await createMessage(conversationId, user.dataValues.id, message, repliedMessageId, files);
+  await createMessage(chatId, user.dataValues.id, message, repliedMessageId, files);
 
   res.status(201).json({ message: 'Your message was sent successfully' });
 });
 
 exports.editMessage = catchAsync(async (req, res, next) => {
   const { user, files } = req;
-  const { conversationId, messageId } = req.params;
+  const { chatId, messageId } = req.params;
   const { message } = req.body;
 
-  const foundMessage = await findOneMessage(messageId, conversationId, {
+  const foundMessage = await findOneMessage(messageId, chatId, {
     senderId: user.dataValues.id,
   });
 
@@ -196,22 +196,22 @@ exports.editMessage = catchAsync(async (req, res, next) => {
 
 exports.deleteMessage = catchAsync(async (req, res, next) => {
   const { user } = req;
-  const { conversationId } = req.params;
+  const { chatId } = req.params;
   const { messagesId } = req.body;
 
   const foundMessages = await Message.findAll({
-    where: Sequelize.and({ id: messagesId }, { conversationId }),
+    where: Sequelize.and({ id: messagesId }, { chatId }),
   });
 
   if (foundMessages.length < 1) {
     return next(new AppError('There is no message with provided ids in this conversation', 404));
   }
 
-  const conversation = await Conversation.findByPk(conversationId);
+  const chat = await Chat.findByPk(chatId);
 
-  if (conversation.dataValues.type === 'group') {
-    const userRole = (await conversation.getUsers({ where: { id: user.dataValues.id } }))[0]
-      .participants.dataValues.role;
+  if (chat.dataValues.type === 'group') {
+    const userRole = (await chat.getUsers({ where: { id: user.dataValues.id } }))[0].participants
+      .dataValues.role;
 
     if (!['owner', 'admin'].includes(userRole)) {
       await Message.destroy({ where: { id: messagesId } });
@@ -278,9 +278,9 @@ exports.deleteMessage = catchAsync(async (req, res, next) => {
 
 exports.unsendMessage = catchAsync(async (req, res, next) => {
   const { user } = req;
-  const { conversationId, messageId } = req.params;
+  const { chatId, messageId } = req.params;
 
-  const foundMessage = await findOneMessage(messageId, conversationId, {
+  const foundMessage = await findOneMessage(messageId, chatId, {
     senderId: user.dataValues.id,
   });
 
@@ -297,10 +297,10 @@ exports.unsendMessage = catchAsync(async (req, res, next) => {
 
 exports.reactOnMessage = catchAsync(async (req, res, next) => {
   const { user } = req;
-  const { conversationId, messageId } = req.params;
+  const { chatId, messageId } = req.params;
   const { reaction } = req.body;
 
-  const foundMessage = await findOneMessage(messageId, conversationId, {
+  const foundMessage = await findOneMessage(messageId, chatId, {
     senderId: user.dataValues.id,
   });
 
