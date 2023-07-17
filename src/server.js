@@ -39,9 +39,9 @@ const start = async () => {
   const index = event.search(/[A-Z]/);
   process.on(event, (err) => {
     logger.error(
-      `Server is running on port: ${event.slice(0, index).toUpperCase()} ${event
-        .slice(index)
-        .toUpperCase()}. \n ${err.message}`,
+      `${event.slice(0, index).toUpperCase()} ${event.slice(index).toUpperCase()}. \n ${
+        err.message
+      }`,
     );
     server.close(() => {
       process.exit(1);

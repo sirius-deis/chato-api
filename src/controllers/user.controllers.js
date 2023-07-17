@@ -430,7 +430,7 @@ exports.addProfilePhoto = catchAsync(async (req, res, next) => {
 
   const cldResponse = await resizeAndSave(buffer, { width: 100, height: 100 }, 'jpeg', 'users');
 
-  user.set('photos', cldResponse.secure_url);
+  user.createPicture({ fileUrl: cldResponse.secure_url, publicId: cldResponse.public_id });
 
   await user.save();
   res.status(200).json({ message: 'Photo was added successfully' });

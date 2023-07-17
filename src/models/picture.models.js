@@ -1,15 +1,12 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../db/db.config');
 
-const Attachment = sequelize.define('attachment', {
+const Picture = sequelize.define('pictures', {
   id: {
     type: DataTypes.INTEGER,
     autoIncrement: true,
     primaryKey: true,
     allowNull: false,
-  },
-  thumbUrl: {
-    type: DataTypes.STRING,
   },
   fileUrl: {
     type: DataTypes.STRING,
@@ -21,4 +18,4 @@ const Attachment = sequelize.define('attachment', {
   },
 });
 
-module.exports = Attachment;
+module.exports = Picture;

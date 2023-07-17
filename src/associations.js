@@ -8,6 +8,7 @@ const DeletedMessage = require('./models/deletedMessage.models');
 const DeletedConversation = require('./models/deletedConversation.models');
 const MessageReaction = require('./models/messageReaction.models');
 const Attachment = require('./models/attachment.models');
+const Picture = require('./models/picture.models');
 
 User.hasOne(ActivateToken, { onDelete: 'cascade', foreignKey: 'userId' });
 ActivateToken.belongsTo(User, { foreignKey: 'userId' });
@@ -61,3 +62,6 @@ MessageReaction.belongsTo(Message, { foreignKey: 'messageId' });
 
 User.hasMany(MessageReaction, { onDelete: 'cascade', foreignKey: 'userId' });
 MessageReaction.belongsTo(User, { foreignKey: 'userId' });
+
+User.hasMany(Picture, { onDelete: 'cascade', foreignKey: 'userId' });
+Picture.belongsTo(User, { foreignKey: 'userId' });

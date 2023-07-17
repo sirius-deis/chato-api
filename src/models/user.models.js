@@ -59,18 +59,6 @@ const User = sequelize.define(
     lastSeen: {
       type: DataTypes.DATE,
     },
-    photos: {
-      type: DataTypes.TEXT,
-      get: function () {
-        return JSON.parse(this.getDataValue('photos'));
-      },
-      set: function (val) {
-        const photos = JSON.parse(this.getDataValue('photos'));
-        photos.push(val);
-        return this.setDataValue('photos', JSON.stringify(photos));
-      },
-      defaultValue: '[]',
-    },
   },
   {
     hooks: {
