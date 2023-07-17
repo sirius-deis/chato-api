@@ -6,6 +6,7 @@ const DeletedMessage = require('../models/deletedMessage.models');
 const MessageReaction = require('../models/messageReaction.models');
 const Attachment = require('../models/attachment.models');
 const Chat = require('../models/chat.models');
+const GroupBlockList = require('../models/groupBlockList');
 const { findChat } = require('../utils/conversation');
 const {
   createMessage,
@@ -146,7 +147,12 @@ exports.addMessage = catchAsync(async (req, res, next) => {
       return next(new AppError('You were blocked by selected user', 400));
     }
   } else {
-    //TODO: add a block list for group chats
+    const groupBlockList = await GroupBlockList.findOne({
+      where: Sequelize.and({ userId: user.dataValues.id }, { chatId }),
+    });
+    if (groupBlockList) {
+      return next(new AppError('You were blocked this group', 400));
+    }
   }
 
   if (repliedMessageId) {

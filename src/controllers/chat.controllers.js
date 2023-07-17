@@ -6,6 +6,7 @@ const Participant = require('../models/participant.models');
 const { Sequelize, sequelize } = require('../db/db.config');
 const DeletedMessage = require('../models/deletedMessage.models');
 const DeletedConversation = require('../models/deletedConversation.models');
+const GroupBlockList = require('../models/groupBlockList');
 const {
   isUserIdsTheSame,
   getReceiverIfExists,
@@ -262,6 +263,13 @@ exports.addUserToGroupChat = catchAsync(async (req, res, next) => {
     return next(new AppError("You can't add people to private conversation", 400));
   }
 
+  const groupBlockList = await GroupBlockList.findOne({
+    where: Sequelize.and({ userId: user.dataValues.id }, { chatId }),
+  });
+  if (groupBlockList) {
+    return next(new AppError('You were blocked this group', 400));
+  }
+
   chat.addUser(userToInviteId, { through: { role: 'user' } });
 
   await chat.save();
@@ -344,6 +352,13 @@ exports.joinGroupChat = catchAsync(async (req, res, next) => {
 
   if (!checkChatType(chat, 'group')) {
     return next(new AppError("You can't perform such an operation to private conversation", 400));
+  }
+
+  const groupBlockList = await GroupBlockList.findOne({
+    where: Sequelize.and({ userId: user.dataValues.id }, { chatId }),
+  });
+  if (groupBlockList) {
+    return next(new AppError('You were blocked this group', 400));
   }
 
   chat.addUser(user.dataValues.id, { through: { role: 'user' } });

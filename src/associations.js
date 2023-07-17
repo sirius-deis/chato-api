@@ -66,3 +66,6 @@ MessageReaction.belongsTo(User, { foreignKey: 'userId' });
 
 User.hasMany(Picture, { onDelete: 'cascade', foreignKey: 'userId' });
 Picture.belongsTo(User, { foreignKey: 'userId' });
+
+Chat.belongsToMany(User, { through: GroupBlockList, foreignKey: 'userId' });
+User.belongsToMany(Chat, { through: GroupBlockList, foreignKey: 'chatId' });
