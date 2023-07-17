@@ -115,7 +115,7 @@ userRouter.post(
 );
 
 userRouter.patch('/add-photo', uploadFile('photo'), addProfilePhoto);
-userRouter.patch('/delete-photo/:path', deleteProfilePhoto);
+userRouter.patch('/delete-photo/:photoId', deleteProfilePhoto);
 
 userRouter.patch('/report/:userId', report);
 

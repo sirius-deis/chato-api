@@ -7,7 +7,7 @@ const { arePasswordsTheSame } = require('../utils/validator');
 const sendMail = require('../api/email');
 const { sequelize } = require('../db/db.config');
 const { setValue } = require('../db/redis.config');
-const { resizeAndSave } = require('../api/fileUpload');
+const { resizeAndSave, deleteFile } = require('../api/fileUpload');
 
 const User = require('../models/user.models');
 const ActivateToken = require('../models/activateToken.models');
@@ -437,5 +437,20 @@ exports.addProfilePhoto = catchAsync(async (req, res, next) => {
 });
 
 exports.deleteProfilePhoto = catchAsync(async (req, res, next) => {
+  const { user } = req;
+  const { photoId } = req.params;
+
+  const photo = (await user.getPictures({ where: { id: photoId } }))[0];
+
+  if (!photo) {
+    return next(new AppError('There is no such profile photo', 404));
+  }
+
+  const { publicId } = photo.dataValues;
+
+  await deleteFile(publicId);
+
+  await photo.destroy();
+
   res.status(200).json({ message: 'Photo was deleted successfully' });
 });

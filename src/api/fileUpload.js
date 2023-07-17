@@ -57,3 +57,5 @@ exports.resizeAndSave = async (buffer, { width, height }, format, subfolder) => 
     bufferToStream(data).pipe(stream);
   });
 };
+
+exports.deleteFile = async (publicId) => cld.v2.uploader.destroy(publicId);
