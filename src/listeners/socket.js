@@ -2,6 +2,7 @@ const { Server } = require('socket.io');
 const auth = require('./auth');
 const Message = require('../models/message.models');
 const Conversation = require('../models/conversation.models');
+const { sequelize } = require('../db/db.config');
 const {
   isUserIdsTheSame,
   getReceiverIfExists,
@@ -121,12 +122,22 @@ module.exports = (server) => {
           files,
         );
 
-        const receiverSocketId = listOfUsers.get(receiverId);
-        if (!receiverSocketId) {
+        const receiversId = [];
+
+        participants.forEach((participant) => {
+          if (
+            listOfUsers.has(participant.dataValues.id) &&
+            participant.dataValues.id !== user.dataValues.id
+          ) {
+            receiversId.push(listOfUsers.get(participant.dataValues.id));
+          }
+        });
+
+        if (receiversId.length < 1) {
           return;
         }
 
-        io.to(receiverSocketId).emit('send_message', { message: createdMessage });
+        io.to(receiversId).emit('send_message', { message: createdMessage });
       },
     );
 
@@ -167,10 +178,29 @@ module.exports = (server) => {
         }
       });
 
+      if (receiversId.length < 1) {
+        return;
+      }
+
       io.to(receiversId).emit('edit_message', { message: foundMessage });
     });
 
-    socket.on('unsend_message', ({ conversationId, messageId }) => {});
+    socket.on('unsend_message', async ({ conversationId, messageId, receiverId }) => {
+      const foundMessage = await findOneMessage(messageId, conversationId, {
+        senderId: user.dataValues.id,
+      });
+      if (!foundMessage || foundMessage.dataValues.isRead) {
+        return socket.emit('error_response', {
+          message: 'There is no such message that you can unsend',
+        });
+      }
+      await sequelize.transaction(async () => {
+        await foundMessage.removeAttachments();
+        await foundMessage.destroy();
+      });
+
+      io.to(receiverId).emit('edit_message', { message: foundMessage });
+    });
 
     socket.on('rate_message', () => {});
 

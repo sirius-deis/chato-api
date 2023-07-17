@@ -187,14 +187,7 @@ exports.deleteMessage = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { conversationId, messageId } = req.params;
 
-  const foundMessage = await Message.findOne({
-    where: Sequelize.and(
-      {
-        id: messageId,
-      },
-      { conversationId: conversationId },
-    ),
-  });
+  const foundMessage = await findOneMessage(messageId, conversationId);
 
   if (!foundMessage) {
     return next(new AppError('There is no message with such id in this conversation', 404));
@@ -248,12 +241,8 @@ exports.unsendMessage = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { conversationId, messageId } = req.params;
 
-  const foundMessage = await Message.findOne({
-    where: Sequelize.and({
-      id: messageId,
-      conversationId: conversationId,
-      senderId: user.dataValues.id,
-    }),
+  const foundMessage = await findOneMessage(messageId, conversationId, {
+    senderId: user.dataValues.id,
   });
 
   if (!foundMessage || foundMessage.dataValues.isRead) {
