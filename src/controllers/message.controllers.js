@@ -1,10 +1,11 @@
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
+const { Sequelize, sequelize } = require('../db/db.config');
 const Message = require('../models/message.models');
 const DeletedMessage = require('../models/deletedMessage.models');
-const { Sequelize, sequelize } = require('../db/db.config');
 const MessageReaction = require('../models/messageReaction.models');
 const Attachment = require('../models/attachment.models');
+const Conversation = require('../models/conversation.models');
 const { findConversation } = require('../utils/conversation');
 const {
   createMessage,
@@ -14,6 +15,17 @@ const {
   findOneMessage,
 } = require('../utils/message');
 const { isUserBlockedByAnotherUser } = require('../utils/user');
+
+const countDeletedMessagesById = (array) => {
+  const map = {};
+
+  for (let i = 0; i < array.length; i += 1) {
+    const id = array[i].dataValues.messageId;
+    map[id] = map[id] + 1 || 0;
+  }
+
+  return map;
+};
 
 exports.getMessages = catchAsync(async (req, res, next) => {
   const { user } = req;
@@ -182,57 +194,84 @@ exports.editMessage = catchAsync(async (req, res, next) => {
   res.status(200).json({ message: 'Your message was edited successfully' });
 });
 
-//TODO: refactor controller to accept ids list and delete many messages
 exports.deleteMessage = catchAsync(async (req, res, next) => {
   const { user } = req;
-  const { conversationId, messageId } = req.params;
+  const { conversationId } = req.params;
+  const { messagesId } = req.body;
 
-  const foundMessage = await findOneMessage(messageId, conversationId);
+  const foundMessages = await Message.findAll({
+    where: Sequelize.and({ id: messagesId }, { conversationId }),
+  });
 
-  if (!foundMessage) {
-    return next(new AppError('There is no message with such id in this conversation', 404));
+  if (foundMessages.length < 1) {
+    return next(new AppError('There is no message with provided ids in this conversation', 404));
   }
 
-  const conversation = await foundMessage.getConversation();
+  const conversation = await Conversation.findByPk(conversationId);
 
   if (conversation.dataValues.type === 'group') {
     const userRole = (await conversation.getUsers({ where: { id: user.dataValues.id } }))[0]
       .participants.dataValues.role;
-    if (user.dataValues.id !== foundMessage.senderId && ['owner', 'admin'].includes(userRole)) {
-      return next(new AppError("You can't delete message that is not your", 403));
+
+    if (!['owner', 'admin'].includes(userRole)) {
+      await Message.destroy({ where: { id: messagesId } });
+    } else {
+      const messagesToDelete = [];
+      for (let i = 0; i < foundMessages.length; i += 1) {
+        if (user.dataValues.id !== foundMessages[i].senderId) {
+          return next(new AppError("You can't delete message that is not your", 403));
+        }
+        messagesToDelete.push(foundMessages[i].destroy());
+      }
+      await Promise.all(messagesToDelete);
     }
-    await foundMessage.destroy();
+
     return res.status(204).send();
   }
 
-  if (!foundMessage) {
-    return next(new AppError('There is no such message that you can delete', 404));
+  const messagesWithoutDeleted = await filterDeletedMessages(user.dataValues.id, ...foundMessages);
+
+  if (messagesWithoutDeleted.length < 1) {
+    return next(new AppError('There is no messages with such ids', 404));
   }
 
-  const messagesWithoutDeleted = await filterDeletedMessages(user.dataValues.id, foundMessage);
+  const deletedMessagesFromFound = messagesWithoutDeleted.map((message) =>
+    DeletedMessage.create({
+      messageId: message.dataValues.id,
+      userId: user.dataValues.id,
+    }),
+  );
 
-  if (!messagesWithoutDeleted[0]) {
-    return next(new AppError('There is no message with such id', 404));
-  }
-
-  await DeletedMessage.create({
-    messageId: messageId,
-    userId: user.dataValues.id,
-  });
+  await Promise.all(deletedMessagesFromFound);
 
   const deletedMessages = await DeletedMessage.findAll({
     where: {
-      messageId: messageId,
+      messageId: messagesId,
     },
   });
 
-  if (deletedMessages.length === 2) {
-    await sequelize.transaction(async () => {
-      await Promise.all(deletedMessages.map((deleted) => deleted.destroy()));
-      await foundMessage.removeAttachments();
-      await foundMessage.destroy();
-    });
+  const deletedMessagesMapGroupedById = countDeletedMessagesById(deletedMessages);
+
+  const transactionsArr = [];
+
+  // eslint-disable-next-line no-restricted-syntax, guard-for-in
+  for (const key in deletedMessagesMapGroupedById) {
+    const id = deletedMessagesMapGroupedById[key];
+    if (deletedMessagesMapGroupedById[key] === 2) {
+      transactionsArr.push(
+        sequelize.transaction(
+          async () =>
+            await Promise.all([
+              await DeletedMessage.destroy({ where: { messagesId: id } }),
+              await Message.destroy({ where: { id } }),
+              await Attachment.destroy({ where: { messagesId: id } }),
+            ]),
+        ),
+      );
+    }
   }
+
+  await Promise.all(transactionsArr);
 
   res.status(204).send();
 });

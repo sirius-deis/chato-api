@@ -25,7 +25,8 @@ messageRouter
     validationMiddleware,
     uploadFiles('files', 5),
     addMessage,
-  );
+  )
+  .delete(deleteMessage);
 
 messageRouter
   .route('/:messageId')
@@ -36,8 +37,7 @@ messageRouter
     uploadFiles('files', 5),
     editMessage,
   )
-  .patch(reactOnMessage)
-  .delete(deleteMessage);
+  .patch(reactOnMessage);
 
 messageRouter.delete('/:messageId/unsend', unsendMessage);
 
