@@ -11,13 +11,19 @@ exports.createMessage = async (chatId, senderId, message, repliedMessageId, file
       message,
       repliedMessageId,
     });
-    //TODO: add cloud storage and store attachments there
     if (files) {
       await Promise.all(
         files.map(async (file) => {
-          const path = '';
-          await resizeAndSave(file.buffer, { width: 1024, height: 1024 }, 'png', path);
-          return messageObj.addAttachment({ fileUrl: path });
+          const cldResponse = await resizeAndSave(
+            file.buffer,
+            { width: 1024, height: 1024 },
+            'png',
+            'messages',
+          );
+          return messageObj.addAttachment({
+            fileUrl: cldResponse.secure_url,
+            publicId: cldResponse.public_id,
+          });
         }),
       );
     }
@@ -36,6 +42,7 @@ exports.findOneDeletedMessage = async (userId, messageId) =>
     ),
   });
 
+//TODO:
 exports.addAttachments = async (foundMessage, files) =>
   await sequelize.transaction(async () => {
     await foundMessage.removeAttachments();
