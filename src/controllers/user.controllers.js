@@ -109,6 +109,12 @@ exports.login = catchAsync(async (req, res, next) => {
 
   user.password = undefined;
 
+  const photos = await user.getPictures({
+    attributes: {
+      exclude: ['publicId', 'userId'],
+    },
+  });
+
   sendResponseWithJwtToken(
     res,
     200,
@@ -122,6 +128,7 @@ exports.login = catchAsync(async (req, res, next) => {
           isBlocked: undefined,
           isReported: undefined,
           isActive: undefined,
+          photos,
         },
       },
     },
@@ -158,6 +165,11 @@ exports.getUser = catchAsync(async (req, res, next) => {
   const { userId } = req.params;
 
   if (user.dataValues.id.toString() === userId) {
+    const photos = await user.getPictures({
+      attributes: {
+        exclude: ['publicId', 'userId'],
+      },
+    });
     return res.status(200).json({
       message: 'Data was retrieved successfully',
       data: {
@@ -167,7 +179,7 @@ exports.getUser = catchAsync(async (req, res, next) => {
           email: user.dataValues.email,
           userName: user.get('userName'),
           bio: user.dataValues.bio,
-          photos: user.get('photos'),
+          photos: photos,
         },
       },
     });
@@ -178,6 +190,12 @@ exports.getUser = catchAsync(async (req, res, next) => {
     return next(new AppError('There is no user with such id', 404));
   }
 
+  const photos = await retrievedUser.getPictures({
+    attributes: {
+      exclude: ['publicId'],
+    },
+  });
+
   res.status(200).json({
     message: 'Data was retrieved successfully',
     data: {
@@ -185,7 +203,7 @@ exports.getUser = catchAsync(async (req, res, next) => {
         id: retrievedUser.dataValues.id,
         userName: retrievedUser.get('userName'),
         bio: retrievedUser.dataValues.bio,
-        photos: user.get('photos'),
+        photos,
       },
     },
   });
@@ -385,22 +403,28 @@ exports.unblockUser = catchAsync(async (req, res, next) => {
 exports.blockAccount = catchAsync(async (req, res, next) => {
   const { userId } = req.params;
   const userToBlock = await User.findByPk(userId);
+
   if (!userToBlock) {
     return next(new AppError('There is no user with such id', 404));
   }
+
   userToBlock.dataValues.isBlocked = true;
   await userToBlock.save();
+
   res.status(200).json({ message: 'User account was blocked successfully' });
 });
 
 exports.unblockAccount = catchAsync(async (req, res, next) => {
   const { userId } = req.params;
   const userToUnblock = await User.findByPk(userId);
+
   if (!userToUnblock) {
     return next(new AppError('There is no user with such id', 404));
   }
+
   userToUnblock.dataValues.isBlocked = false;
   await userToUnblock.save();
+
   res.status(200).json({ message: 'User account was unblocked successfully' });
 });
 
