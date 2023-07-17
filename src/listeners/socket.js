@@ -2,6 +2,7 @@ const { Server } = require('socket.io');
 const auth = require('./auth');
 const Message = require('../models/message.models');
 const Conversation = require('../models/conversation.models');
+const MessageReaction = require('../models/messageReaction.models');
 const { sequelize } = require('../db/db.config');
 const {
   isUserIdsTheSame,
@@ -19,6 +20,8 @@ const {
   filterDeletedMessages,
   findOneMessage,
 } = require('../utils/message');
+
+const listOfUsers = new Map();
 
 const createNewConversation = async (user, receiverId) => {
   if (isUserIdsTheSame(user.dataValues.id.toString(), receiverId)) {
@@ -46,7 +49,17 @@ const createNewConversation = async (user, receiverId) => {
   return await createConversation(user.dataValues.id, receiver.dataValues.id);
 };
 
-const listOfUsers = new Map();
+const getParticipantsId = (participants, senderId) => {
+  const arr = [];
+
+  participants.forEach((participant) => {
+    if (listOfUsers.has(participant.dataValues.id) && participant.dataValues.id !== senderId) {
+      arr.push(listOfUsers.get(participant.dataValues.id));
+    }
+  });
+
+  return arr;
+};
 
 module.exports = (server) => {
   const io = new Server(server);
@@ -122,16 +135,7 @@ module.exports = (server) => {
           files,
         );
 
-        const receiversId = [];
-
-        participants.forEach((participant) => {
-          if (
-            listOfUsers.has(participant.dataValues.id) &&
-            participant.dataValues.id !== user.dataValues.id
-          ) {
-            receiversId.push(listOfUsers.get(participant.dataValues.id));
-          }
-        });
+        const receiversId = getParticipantsId(participants, user.dataValues.id);
 
         if (receiversId.length < 1) {
           return;
@@ -167,16 +171,7 @@ module.exports = (server) => {
 
       const participants = await (await foundMessage.getConversation()).getUsers();
 
-      const receiversId = [];
-
-      participants.forEach((participant) => {
-        if (
-          listOfUsers.has(participant.dataValues.id) &&
-          participant.dataValues.id !== user.dataValues.id
-        ) {
-          receiversId.push(listOfUsers.get(participant.dataValues.id));
-        }
-      });
+      const receiversId = getParticipantsId(participants, user.dataValues.id);
 
       if (receiversId.length < 1) {
         return;
@@ -199,10 +194,58 @@ module.exports = (server) => {
         await foundMessage.destroy();
       });
 
-      io.to(receiverId).emit('edit_message', { message: foundMessage });
+      io.to(receiverId).emit('unsend_message', { messageId: foundMessage.dataValues.id });
     });
 
-    socket.on('rate_message', () => {});
+    socket.on('rate_message', async ({ conversationId, messageId, receiverId, reaction }) => {
+      const foundMessage = await findOneMessage(messageId, conversationId, {
+        senderId: user.dataValues.id,
+      });
+
+      if (!foundMessage) {
+        return socket.emit('error_response', {
+          message: 'There is no such message to react to',
+        });
+      }
+
+      const messageReaction = await MessageReaction.findOne({
+        where: {
+          userId: user.dataValues.id,
+          messageId,
+        },
+      });
+
+      if (messageReaction) {
+        if (messageReaction.dataValues.reaction === reaction) {
+          await messageReaction.destroy();
+        } else {
+          messageReaction.reaction = reaction;
+        }
+      } else {
+        await MessageReaction.create({
+          userId: user.dataValues.id,
+          messageId,
+          reaction,
+        });
+      }
+
+      const conversation = await Conversation.findByPk(conversationId);
+      if (!conversation) {
+        return socket.emit('error_response', {
+          message: 'Selected conversation does not exists',
+        });
+      }
+
+      const participants = await conversation.getUsers();
+
+      const receiversId = getParticipantsId(participants, user.dataValues.id);
+
+      if (receiversId.length < 1) {
+        return;
+      }
+
+      io.to(receiversId).emit('rate_message', { messageReaction });
+    });
 
     socket.on('disconnect', () => {
       socket.broadcast.emit('offline', listOfUsers.get(user.dataValues.id));

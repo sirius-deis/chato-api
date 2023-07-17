@@ -261,12 +261,8 @@ exports.reactOnMessage = catchAsync(async (req, res, next) => {
   const { conversationId, messageId } = req.params;
   const { reaction } = req.body;
 
-  const foundMessage = await Message.findOne({
-    where: Sequelize.and({
-      id: messageId,
-      conversationId: conversationId,
-      senderId: user.dataValues.id,
-    }),
+  const foundMessage = await findOneMessage(messageId, conversationId, {
+    senderId: user.dataValues.id,
   });
 
   if (!foundMessage) {
