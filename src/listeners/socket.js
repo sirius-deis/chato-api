@@ -73,14 +73,14 @@ module.exports = (server) => {
 
     socket.on(
       'send_message',
-      async ({ messageTest, isNew, chatId, receiverId, repliedMessageId, files }) => {
+      async ({ message, isNew, chatId, receiverId, repliedMessageId, files }) => {
         let conversation;
         if (isNew) {
           conversation = createNewConversation(user, receiverId);
         } else {
           conversation = await Chat.findByPk(chatId);
           if (!conversation) {
-            return socket.emit('error_response', {
+            return socket.emit('error_send_message', {
               message: 'Selected conversation does not exists',
             });
           }
@@ -88,7 +88,7 @@ module.exports = (server) => {
 
         const participants = await conversation.getUsers();
         if (!participants.find((participant) => participant.dataValues.id === user.dataValues.id)) {
-          return socket.emit('error_response', {
+          return socket.emit('error_send_message', {
             message: 'There is no conversation with such id for this user',
           });
         }
@@ -102,7 +102,7 @@ module.exports = (server) => {
           }
 
           if (await isUserBlockedByAnotherUser(user.dataValues.id, receiver)) {
-            return socket.emit('error_response', {
+            return socket.emit('error_send_message', {
               message: 'You were blocked by selected user',
             });
           }
@@ -114,14 +114,14 @@ module.exports = (server) => {
           const repliedMessage = await Message.findByPk(repliedMessageId);
 
           if (!repliedMessage) {
-            return socket.emit('error_response', {
+            return socket.emit('error_send_message', {
               message: 'There is no message to reply with such id',
             });
           }
 
           const deletedMessageToReply = findOneDeletedMessage(user.dataValues.id, repliedMessageId);
           if (deletedMessageToReply) {
-            return socket.emit('error_response', {
+            return socket.emit('error_send_message', {
               message: 'There is no message to reply with such id',
             });
           }
@@ -130,7 +130,7 @@ module.exports = (server) => {
         const createdMessage = await createMessage(
           chatId,
           user.dataValues.id,
-          messageTest,
+          message,
           repliedMessageId,
           files,
         );
@@ -141,7 +141,7 @@ module.exports = (server) => {
           return;
         }
 
-        io.to(receiversId).emit('send_message', { message: createdMessage });
+        io.to([receiversId, socket.id]).emit('send_message', { chatId, message: createdMessage });
       },
     );
 
@@ -151,7 +151,7 @@ module.exports = (server) => {
       });
 
       if (!foundMessage) {
-        return socket.emit('error_response', {
+        return socket.emit('error_edit_message', {
           message: 'There is no such message that you can edit',
         });
       }
@@ -159,7 +159,7 @@ module.exports = (server) => {
       const messagesWithoutDeleted = await filterDeletedMessages(user.dataValues.id, foundMessage);
 
       if (!messagesWithoutDeleted[0]) {
-        return socket.emit('error_response', {
+        return socket.emit('error_edit_message', {
           message: 'There is no message with such id',
         });
       }
@@ -176,25 +176,32 @@ module.exports = (server) => {
       if (receiversId.length < 1) {
         return;
       }
-
-      io.to(receiversId).emit('edit_message', { message: foundMessage });
+      io.to([...receiversId, socket.id]).emit('edit_message', {
+        chatId,
+        messageId,
+        message: foundMessage,
+      });
     });
 
-    socket.on('unsend_message', async ({ conversationId, messageId, receiverId }) => {
-      const foundMessage = await findOneMessage(messageId, conversationId, {
+    socket.on('unsend_message', async ({ chatId, messageId, receiverId }) => {
+      const foundMessage = await findOneMessage(messageId, chatId, {
         senderId: user.dataValues.id,
       });
       if (!foundMessage || foundMessage.dataValues.isRead) {
-        return socket.emit('error_response', {
+        return socket.emit('error_unsend_message', {
           message: 'There is no such message that you can unsend',
         });
       }
+
       await sequelize.transaction(async () => {
         await foundMessage.removeAttachments();
         await foundMessage.destroy();
       });
 
-      io.to(receiverId).emit('unsend_message', { messageId: foundMessage.dataValues.id });
+      io.to([receiverId, socket.id]).emit('unsend_message', {
+        chatId,
+        messageId,
+      });
     });
 
     socket.on('rate_message', async ({ chatId, messageId, reaction }) => {
@@ -203,7 +210,7 @@ module.exports = (server) => {
       });
 
       if (!foundMessage) {
-        return socket.emit('error_response', {
+        return socket.emit('error_rate_message', {
           message: 'There is no such message to react to',
         });
       }
@@ -231,7 +238,7 @@ module.exports = (server) => {
 
       const chat = await Chat.findByPk(chatId);
       if (!chat) {
-        return socket.emit('error_response', {
+        return socket.emit('error_rate_message', {
           message: 'Selected conversation does not exists',
         });
       }
@@ -244,7 +251,7 @@ module.exports = (server) => {
         return;
       }
 
-      io.to(receiversId).emit('rate_message', { messageReaction });
+      io.to([...receiversId, socket.id]).emit('rate_message', { messageReaction });
     });
 
     socket.on('disconnect', () => {
