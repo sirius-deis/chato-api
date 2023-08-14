@@ -76,7 +76,7 @@ describe('/conversations route', () => {
         })
         .end(done);
     });
-    it('should return 400 as user is trying to begin conversation with himself', (done) => {
+    it('should return 400 as user is trying to begin a conversation with himself', (done) => {
       request(app)
         .post(`/api/v1/users/${1}/chats/private`)
         .type('json')
@@ -150,13 +150,27 @@ describe('/conversations route', () => {
   describe('/group', () => {
     it('should return 401 as user is not logged in', (done) => {
       request(app)
-        .post(`/api/v1/users/${1}/chats/group`)
+        .post('/api/v1/chats/group')
         .set('Accept', 'application/json')
         .send({})
         .expect(401)
         .expect('Content-Type', /json/)
         .expect((res) => {
           expect(res.body.message).toBe('Sign in before accessing this route');
+        })
+        .end(done);
+    });
+    it('should return 201 and create a group chat', (done) => {
+      request(app)
+        .post('/api/v1/chats/group')
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token1}`)
+        .send()
+        .expect(201)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('Group conversation was created successfully');
         })
         .end(done);
     });
