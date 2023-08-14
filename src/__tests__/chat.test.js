@@ -175,6 +175,34 @@ describe('/conversations route', () => {
         .end(done);
     });
   });
+  describe('/:chatId', () => {
+    it('should return 401 as user is not logged in', (done) => {
+      request(app)
+        .patch(`/api/v1/chats/${1}`)
+        .set('Accept', 'application/json')
+        .send({})
+        .expect(401)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('Sign in before accessing this route');
+        })
+        .end(done);
+    });
+    it('should return 403 and create a group chat', (done) => {
+      request(app)
+        .patch(`/api/v1/chats/${1}`)
+        .type('json')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token3}`)
+        .send()
+        .expect(403)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('This conversation is not your');
+        })
+        .end(done);
+    });
+  });
   describe('/ route for getting all conversations', () => {
     it('should return 401 there was no token provided', (done) => {
       request(app)
