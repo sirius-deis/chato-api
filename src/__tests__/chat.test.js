@@ -63,7 +63,7 @@ describe('/conversations route', () => {
     await sequelize.close();
     await redisDisconnect();
   });
-  describe('/ route for creating conversation', () => {
+  describe('/private route for creating conversation', () => {
     it('should return 401 as user is not logged in', (done) => {
       request(app)
         .post(`/api/v1/users/${1}/chats/private`)
@@ -143,6 +143,20 @@ describe('/conversations route', () => {
         .expect('Content-Type', /json/)
         .expect((res) => {
           expect(res.body.message).toBe('Conversation was created successfully');
+        })
+        .end(done);
+    });
+  });
+  describe('/group', () => {
+    it('should return 401 as user is not logged in', (done) => {
+      request(app)
+        .post(`/api/v1/users/${1}/chats/group`)
+        .set('Accept', 'application/json')
+        .send({})
+        .expect(401)
+        .expect('Content-Type', /json/)
+        .expect((res) => {
+          expect(res.body.message).toBe('Sign in before accessing this route');
         })
         .end(done);
     });
