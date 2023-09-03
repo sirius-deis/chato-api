@@ -3,7 +3,8 @@ const auth = require('./auth');
 const Message = require('../models/message.models');
 const Chat = require('../models/chat.models');
 const MessageReaction = require('../models/messageReaction.models');
-const { sequelize } = require('../db/db.config');
+const GroupBlockList = require('../models/groupBlockList');
+const { sequelize, Sequelize } = require('../db/db.config');
 const {
   isUserIdsTheSame,
   getReceiverIfExists,
@@ -107,7 +108,14 @@ module.exports = (server) => {
             });
           }
         } else {
-          //TODO: add a block list for group chats
+          const groupBlockList = await GroupBlockList.findOne({
+            where: Sequelize.and({ userId: user.dataValues.id }, { chatId }),
+          });
+          if (groupBlockList) {
+            return socket.emit('error_send_message', {
+              message: 'You were blocked in this group',
+            });
+          }
         }
 
         if (repliedMessageId) {
@@ -141,7 +149,9 @@ module.exports = (server) => {
           return;
         }
 
-        io.to([receiversId, socket.id]).emit('send_message', { chatId, message: createdMessage });
+        io.sockets
+          .to([...receiversId, socket.id])
+          .emit('send_message', { chatId, message: createdMessage });
       },
     );
 

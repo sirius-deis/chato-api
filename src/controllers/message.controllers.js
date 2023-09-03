@@ -151,7 +151,7 @@ exports.addMessage = catchAsync(async (req, res, next) => {
       where: Sequelize.and({ userId: user.dataValues.id }, { chatId }),
     });
     if (groupBlockList) {
-      return next(new AppError('You were blocked this group', 400));
+      return next(new AppError('You were blocked in this group', 400));
     }
   }
 
