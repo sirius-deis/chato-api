@@ -150,7 +150,7 @@ module.exports = (server) => {
         }
 
         io.sockets
-          .to([...receiversId, socket.id])
+          .to([socket.id, ...receiversId])
           .emit('send_message', { chatId, message: createdMessage });
       },
     );
