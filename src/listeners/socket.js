@@ -63,7 +63,13 @@ const getParticipantsId = (participants, senderId) => {
 };
 
 module.exports = (server) => {
-  const io = new Server(server);
+  const io = new Server(server, {
+    cors: {
+      origin: '*',
+      allowedHeaders: [],
+      credentials: true,
+    },
+  });
 
   io.use(auth);
 
