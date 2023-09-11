@@ -7,6 +7,7 @@ const {
   deleteMessage,
   reactOnMessage,
   unsendMessage,
+  forwardMessages,
 } = require('../controllers/message.controllers');
 const { isLoggedIn } = require('../middlewares/auth.middlewares');
 const { isNotEmpty } = require('../utils/validator');
@@ -38,6 +39,8 @@ messageRouter
     editMessage,
   )
   .patch(reactOnMessage);
+
+messageRouter.post('/:messageId/forward', forwardMessages);
 
 messageRouter.delete('/:messageId/unsend', unsendMessage);
 
