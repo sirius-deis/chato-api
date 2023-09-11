@@ -141,13 +141,13 @@ module.exports = (server) => {
           }
         }
 
-        const createdMessage = await createMessage(
+        const createdMessage = await createMessage({
           chatId,
-          user.dataValues.id,
+          userId: user.dataValues.id,
           message,
           repliedMessageId,
           files,
-        );
+        });
 
         const receiversId = getParticipantsId(participants, user.dataValues.id);
 
