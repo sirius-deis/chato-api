@@ -168,7 +168,7 @@ exports.addMessage = catchAsync(async (req, res, next) => {
     }
   }
 
-  await createMessage(chatId, user.dataValues.id, message, repliedMessageId, files);
+  await createMessage({ chatId, userId: user.dataValues.id, message, repliedMessageId, files });
 
   res.status(201).json({ message: 'Your message was sent successfully' });
 });
