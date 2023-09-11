@@ -271,7 +271,7 @@ module.exports = (server) => {
     });
 
     socket.on('disconnect', () => {
-      socket.broadcast.emit('offline', listOfUsers.get(user.dataValues.id));
+      socket.broadcast.emit('offline', user.id);
       listOfUsers.delete(user.dataValues.id);
     });
 

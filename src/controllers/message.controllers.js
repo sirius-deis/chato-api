@@ -340,4 +340,25 @@ exports.reactOnMessage = catchAsync(async (req, res, next) => {
 });
 
 //TODO: add a controller for forwarding messages
-exports.forwardMessages = catchAsync(async (req, res, next) => {});
+exports.forwardMessages = catchAsync(async (req, res, next) => {
+  const { user } = req;
+  const { messageId, chatId } = req.params;
+  const message = await Message.findByPk(messageId);
+  if (!message) {
+    next(new AppError('There is no message with such id', 404));
+  }
+
+  const chat = await Chat.findByPk(chatId);
+  if (!chat) {
+    next(new AppError('There is no chat with such id', 404));
+  }
+
+  const participants = await chat.getUsers();
+  if (!participants.find((participant) => participant.dataValues.id === user.dataValues.id)) {
+    return next(new AppError('There is no chat with such id for this user', 404));
+  }
+
+  await createMessage({ chatId, userId: user.dataValues.id, forwardMessageId: messageId });
+
+  res.status(201).send();
+});
