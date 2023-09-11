@@ -143,7 +143,7 @@ module.exports = (server) => {
 
         const createdMessage = await createMessage({
           chatId,
-          userId: user.dataValues.id,
+          senderId: user.dataValues.id,
           message,
           repliedMessageId,
           files,

@@ -3,32 +3,48 @@ const DeletedMessage = require('../models/deletedMessage.models');
 const { Sequelize, sequelize } = require('../db/db.config');
 const { resizeAndSave } = require('../api/fileUpload');
 
-exports.createMessage = async (chatId, senderId, message, repliedMessageId, files) =>
-  await sequelize.transaction(async () => {
-    const messageObj = await Message.create({
+exports.createMessage = async ({
+  chatId,
+  senderId,
+  message,
+  repliedMessageId,
+  files,
+  forwardMessageId,
+}) => {
+  if (!message && forwardMessageId) {
+    await Message.create({
       chatId,
       senderId,
-      message,
-      repliedMessageId,
+      forwardMessageId,
     });
-    if (files) {
-      await Promise.all(
-        files.map(async (file) => {
-          const cldResponse = await resizeAndSave(
-            file.buffer,
-            { width: 1024, height: 1024 },
-            'png',
-            'messages',
-          );
-          return messageObj.addAttachment({
-            fileUrl: cldResponse.secure_url,
-            publicId: cldResponse.public_id,
-          });
-        }),
-      );
-    }
-    return messageObj;
-  });
+  } else {
+    return await sequelize.transaction(async () => {
+      const messageObj = await Message.create({
+        chatId,
+        senderId,
+        message,
+        repliedMessageId,
+      });
+      if (files) {
+        await Promise.all(
+          files.map(async (file) => {
+            const cldResponse = await resizeAndSave(
+              file.buffer,
+              { width: 1024, height: 1024 },
+              'png',
+              'messages',
+            );
+            return messageObj.addAttachment({
+              fileUrl: cldResponse.secure_url,
+              publicId: cldResponse.public_id,
+            });
+          }),
+        );
+      }
+      return messageObj;
+    });
+  }
+};
 
 exports.findOneDeletedMessage = async (userId, messageId) =>
   await DeletedMessage.findOne({
