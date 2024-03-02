@@ -1,9 +1,10 @@
-const nodemailer = require('nodemailer');
-const hbs = require('nodemailer-express-handlebars');
-const path = require('path');
-const logger = require('./logger');
+const nodemailer = require("nodemailer");
+const hbs = require("nodemailer-express-handlebars");
+const path = require("path");
+const logger = require("./logger");
 
-const { NODE_ENV, EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASSWORD } = process.env;
+const { NODE_ENV, EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASSWORD } =
+  process.env;
 
 const transporter = nodemailer.createTransport({
   host: EMAIL_HOST,
@@ -16,22 +17,22 @@ const transporter = nodemailer.createTransport({
 
 const handlebarOptions = {
   viewEngine: {
-    extname: '.handlebars',
-    partialsDir: path.resolve(__dirname, '../views', 'emails'),
-    layoutsDir: path.resolve(__dirname, '../views', 'emails', 'layouts'),
+    extname: ".handlebars",
+    partialsDir: path.resolve(__dirname, "../views", "emails"),
+    layoutsDir: path.resolve(__dirname, "../views", "emails", "layouts"),
     defaultLayout: path.resolve(
       __dirname,
-      '../views',
-      'emails',
-      'layouts',
-      'root.emails.handlebars',
+      "../views",
+      "emails",
+      "layouts",
+      "root.emails.handlebars"
     ),
   },
-  viewPath: path.resolve(__dirname, '../views/emails/'),
-  extName: '.handlebars',
+  viewPath: path.resolve(__dirname, "../views/emails/"),
+  extName: ".handlebars",
 };
 
-transporter.use('compile', hbs(handlebarOptions));
+transporter.use("compile", hbs(handlebarOptions));
 
 const sendMail = async (to, subject, template, context) => {
   const mailOptions = {
@@ -42,11 +43,11 @@ const sendMail = async (to, subject, template, context) => {
     context,
   };
   try {
-    if (NODE_ENV !== 'development') {
-      // await transporter.sendMail(mailOptions);
-    } else {
+    await transporter.sendMail(mailOptions);
+    if (NODE_ENV === "development") {
       logger.debug(context.link);
     }
+    await transporter.sendMail(mailOptions);
   } catch (err) {
     throw new Error(err);
   }

@@ -1,22 +1,23 @@
-const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
+const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 
-const catchAsync = require('../utils/catchAsync');
-const AppError = require('../utils/appError');
-const { arePasswordsTheSame } = require('../utils/validator');
-const sendMail = require('../api/email');
-const { sequelize } = require('../db/db.config');
-const { setValue } = require('../db/redis.config');
-const { resizeAndSave, deleteFile } = require('../api/fileUpload');
+const catchAsync = require("../utils/catchAsync");
+const AppError = require("../utils/appError");
+const { arePasswordsTheSame } = require("../utils/validator");
+const sendMail = require("../api/email");
+const { sequelize } = require("../db/db.config");
+const { setValue } = require("../db/redis.config");
+const { resizeAndSave, deleteFile } = require("../api/fileUpload");
 
-const User = require('../models/user.models');
-const ActivateToken = require('../models/activateToken.models');
-const ResetToken = require('../models/resetToken.models');
+const User = require("../models/user.models");
+const ActivateToken = require("../models/activateToken.models");
+const ResetToken = require("../models/resetToken.models");
 
 // eslint-disable-next-line object-curly-newline
-const { MODE, PORT, JWT_SECRET, JWT_EXPIRES_IN } = process.env;
+const { NODE_ENV, PORT, JWT_SECRET, JWT_EXPIRES_IN } = process.env;
 
-const signToken = (userId) => jwt.sign({ userId }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+const signToken = (userId) =>
+  jwt.sign({ userId }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 
 const sendResponseWithJwtToken = (res, statusCode, data, userId) => {
   const token = signToken(userId);
@@ -24,14 +25,14 @@ const sendResponseWithJwtToken = (res, statusCode, data, userId) => {
 };
 
 const createToken = () => {
-  const hash = crypto.randomBytes(32).toString('hex');
+  const hash = crypto.randomBytes(32).toString("hex");
   return hash;
 };
 
 const buildLink = (req, token, route) => {
-  const link = `${req.protocol}://${req.hostname}${MODE === 'development' ? `:${PORT}` : ''}${
-    req.baseUrl
-  }/${route}/${token}`;
+  const link = `${req.protocol}://${req.hostname}${
+    NODE_ENV === "development" ? `:${PORT}` : ""
+  }${req.baseUrl}/${route}/${token}`;
   return link;
 };
 
@@ -58,7 +59,12 @@ exports.signup = catchAsync(async (req, res, next) => {
   const { email, password, passwordConfirm } = req.body;
 
   if (!arePasswordsTheSame(password, passwordConfirm)) {
-    return next(new AppError('Password are not the same. Please provide correct passwords', 400));
+    return next(
+      new AppError(
+        "Password are not the same. Please provide correct passwords",
+        400
+      )
+    );
   }
   let link;
   await sequelize.transaction(async () => {
@@ -67,16 +73,16 @@ exports.signup = catchAsync(async (req, res, next) => {
 
     await ActivateToken.create({ token, userId: user.id });
 
-    link = buildLink(req, token, 'activate');
+    link = buildLink(req, token, "activate");
   });
 
   res.status(201).json({
     message:
-      'Your account was created successfully. Please check your email and confirm your account, and then you will be able to use our service',
+      "Your account was created successfully. Please check your email and confirm your account, and then you will be able to use our service",
   });
 
-  sendMail(email, 'Activate your ChattyPal account', 'verification', {
-    title: 'Please activate your account',
+  sendMail(email, "Activate your ChattyPal account", "verification", {
+    title: "Please activate your account",
     link,
     email,
   });
@@ -85,33 +91,33 @@ exports.signup = catchAsync(async (req, res, next) => {
 exports.login = catchAsync(async (req, res, next) => {
   const { email, password } = req.body;
 
-  const user = await User.scope('withPassword').findOne({
+  const user = await User.scope("withPassword").findOne({
     where: { email },
-    attributes: { exclude: ['createdAt', 'updatedAt', 'lastSeen'] },
+    attributes: { exclude: ["createdAt", "updatedAt", "lastSeen"] },
   });
 
   if (!user || !(await user.validatePassword(password))) {
-    return next(new AppError('Wrong email or password', 401));
+    return next(new AppError("Wrong email or password", 401));
   }
 
   if (!user.dataValues.isActive) {
     return next(
       new AppError(
-        'Your account is deactivated. Please reactivate your account and then try again',
-        403,
-      ),
+        "Your account is deactivated. Please reactivate your account and then try again",
+        403
+      )
     );
   }
 
   if (user.dataValues.isBlocked) {
-    return next(new AppError('Your account is blocked', 401));
+    return next(new AppError("Your account is blocked", 401));
   }
 
   user.password = undefined;
 
   const photos = await user.getPictures({
     attributes: {
-      exclude: ['publicId', 'userId'],
+      exclude: ["publicId", "userId"],
     },
   });
 
@@ -119,7 +125,7 @@ exports.login = catchAsync(async (req, res, next) => {
     res,
     200,
     {
-      message: 'You were logged in successfully',
+      message: "You were logged in successfully",
       data: {
         user: {
           ...user.get(),
@@ -132,7 +138,7 @@ exports.login = catchAsync(async (req, res, next) => {
         },
       },
     },
-    user.id,
+    user.id
   );
 });
 
@@ -143,20 +149,25 @@ exports.activate = catchAsync(async (req, res, next) => {
   });
 
   if (!token?.dataValues.token) {
-    return next(new AppError('Token does not exist. Please check if it is correct', 404));
+    return next(
+      new AppError("Token does not exist. Please check if it is correct", 404)
+    );
   }
 
-  const user = await User.scope('withIsActive').findByPk(token.dataValues.userId);
+  const user = await User.scope("withIsActive").findByPk(
+    token.dataValues.userId
+  );
 
   if (!user) {
-    return next(new AppError('Token is invalid. Please try again', 400));
+    return next(new AppError("Token is invalid. Please try again", 400));
   }
 
   await user.update({ isActive: true });
   await token.destroy();
 
   res.status(200).json({
-    message: 'Your account was successfully verified. Please login and enjoy chatting',
+    message:
+      "Your account was successfully verified. Please login and enjoy chatting",
   });
 });
 
@@ -167,17 +178,17 @@ exports.getUser = catchAsync(async (req, res, next) => {
   if (user.dataValues.id.toString() === userId) {
     const photos = await user.getPictures({
       attributes: {
-        exclude: ['publicId', 'userId'],
+        exclude: ["publicId", "userId"],
       },
     });
     return res.status(200).json({
-      message: 'Data was retrieved successfully',
+      message: "Data was retrieved successfully",
       data: {
         user: {
           id: user.dataValues.id,
           phone: user.dataValues.phone,
           email: user.dataValues.email,
-          userName: user.get('userName'),
+          userName: user.get("userName"),
           bio: user.dataValues.bio,
           photos: photos,
         },
@@ -187,21 +198,21 @@ exports.getUser = catchAsync(async (req, res, next) => {
 
   const retrievedUser = await User.findByPk(userId);
   if (!retrievedUser) {
-    return next(new AppError('There is no user with such id', 404));
+    return next(new AppError("There is no user with such id", 404));
   }
 
   const photos = await retrievedUser.getPictures({
     attributes: {
-      exclude: ['publicId'],
+      exclude: ["publicId"],
     },
   });
 
   res.status(200).json({
-    message: 'Data was retrieved successfully',
+    message: "Data was retrieved successfully",
     data: {
       user: {
         id: retrievedUser.dataValues.id,
-        userName: retrievedUser.get('userName'),
+        userName: retrievedUser.get("userName"),
         bio: retrievedUser.dataValues.bio,
         photos,
       },
@@ -220,13 +231,13 @@ exports.updateMe = catchAsync(async (req, res, next) => {
   });
 
   if (!fieldsToInsert) {
-    return next(new AppError('Please provide some information to change', 400));
+    return next(new AppError("Please provide some information to change", 400));
   }
 
   await user.update(fieldsToInsert);
 
   res.status(200).json({
-    message: 'Your data was updated successfully',
+    message: "Your data was updated successfully",
   });
 });
 
@@ -235,15 +246,17 @@ exports.updatePassword = catchAsync(async (req, res, next) => {
   const { password, passwordConfirm, currentPassword } = req.body;
 
   if (!(await user.validatePassword(currentPassword))) {
-    return next(new AppError('Incorrect password', 401));
+    return next(new AppError("Incorrect password", 401));
   }
 
   if (password === currentPassword) {
-    return next(new AppError("New password can't be the same as the current one", 400));
+    return next(
+      new AppError("New password can't be the same as the current one", 400)
+    );
   }
 
   if (!arePasswordsTheSame(password, passwordConfirm)) {
-    return next(new AppError('Passwords are different', 400));
+    return next(new AppError("Passwords are different", 400));
   }
 
   user.password = password;
@@ -254,9 +267,9 @@ exports.updatePassword = catchAsync(async (req, res, next) => {
     res,
     200,
     {
-      message: 'You password was successfully updated',
+      message: "You password was successfully updated",
     },
-    user.id,
+    user.id
   );
 });
 
@@ -265,18 +278,22 @@ exports.forgetPassword = catchAsync(async (req, res, next) => {
   const user = await User.findOne({ where: { email } });
 
   if (!user) {
-    return next(new AppError('There is not user with such email', 404));
+    return next(new AppError("There is not user with such email", 404));
   }
 
   const token = createToken();
   await ResetToken.create({ token, userId: user.dataValues.id });
 
-  const link = buildLink(req, token, 'reset-password');
+  const link = buildLink(req, token, "reset-password");
 
   res.status(200).json({
-    message: 'Reset token was sent to your email. Check it and follow instructions inside it',
+    message:
+      "Reset token was sent to your email. Check it and follow instructions inside it",
   });
-  sendMail(user.email, 'Reset password', 'reset', { title: 'Reset your password', link });
+  sendMail(user.email, "Reset password", "reset", {
+    title: "Reset your password",
+    link,
+  });
 });
 
 exports.resetPassword = catchAsync(async (req, res, next) => {
@@ -285,21 +302,27 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
   const token = await ResetToken.findOne({ where: { token: resetToken } });
 
   if (!token) {
-    return next(new AppError('Token is not exist. Please check if it is correct', 404));
+    return next(
+      new AppError("Token is not exist. Please check if it is correct", 404)
+    );
   }
 
-  const user = await User.scope('withPassword').findByPk(token.dataValues.userId);
+  const user = await User.scope("withPassword").findByPk(
+    token.dataValues.userId
+  );
 
   if (!user) {
-    return next(new AppError('There is no user for such token', 400));
+    return next(new AppError("There is no user for such token", 400));
   }
 
   if (await user.validatePassword(password)) {
-    return next(new AppError("New password can't be the same as previous", 400));
+    return next(
+      new AppError("New password can't be the same as previous", 400)
+    );
   }
 
   if (!arePasswordsTheSame(password, passwordConfirm)) {
-    return next(new AppError('Passwords are different', 400));
+    return next(new AppError("Passwords are different", 400));
   }
 
   user.password = password;
@@ -310,9 +333,9 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
     res,
     200,
     {
-      message: 'You password was successfully restored',
+      message: "You password was successfully restored",
     },
-    user.id,
+    user.id
   );
 });
 
@@ -327,7 +350,7 @@ exports.deleteMe = catchAsync(async (req, res, next) => {
   const { password } = req.body;
 
   if (!(await user.validatePassword(password))) {
-    return next(new AppError('Incorrect password', 401));
+    return next(new AppError("Incorrect password", 401));
   }
 
   await user.destroy();
@@ -340,7 +363,7 @@ exports.deactivate = catchAsync(async (req, res, next) => {
   const { password } = req.body;
 
   if (!(await user.validatePassword(password))) {
-    return next(new AppError('Incorrect password', 401));
+    return next(new AppError("Incorrect password", 401));
   }
 
   user.set({ isActive: false });
@@ -361,17 +384,21 @@ exports.blockUser = catchAsync(async (req, res, next) => {
   const userToBlock = await User.findByPk(userIdToBlock);
 
   if (!userToBlock) {
-    return next(new AppError('There is no user with such id', 404));
+    return next(new AppError("There is no user with such id", 404));
   }
 
   const blockList = await user.getBlocker();
 
-  if (blockList.find((blockedUser) => blockedUser.dataValues.id.toString() === userIdToBlock)) {
-    return next(new AppError('User with such id is already blocked', 400));
+  if (
+    blockList.find(
+      (blockedUser) => blockedUser.dataValues.id.toString() === userIdToBlock
+    )
+  ) {
+    return next(new AppError("User with such id is already blocked", 400));
   }
   await user.addBlocker(userIdToBlock);
 
-  res.status(200).json({ message: 'User was blocked successfully' });
+  res.status(200).json({ message: "User was blocked successfully" });
 });
 
 exports.unblockUser = catchAsync(async (req, res, next) => {
@@ -384,20 +411,24 @@ exports.unblockUser = catchAsync(async (req, res, next) => {
   const userToBlock = await User.findByPk(userIdToBlock);
 
   if (!userToBlock) {
-    return next(new AppError('There is no user with such id', 404));
+    return next(new AppError("There is no user with such id", 404));
   }
 
   const blockList = await user.getBlocker();
 
-  if (!blockList.find((blockedUser) => blockedUser.dataValues.id.toString() === userIdToBlock)) {
-    return next(new AppError('This user is not blocked', 400));
+  if (
+    !blockList.find(
+      (blockedUser) => blockedUser.dataValues.id.toString() === userIdToBlock
+    )
+  ) {
+    return next(new AppError("This user is not blocked", 400));
   }
 
   user.removeBlocker(userIdToBlock);
 
   await user.save();
 
-  res.status(200).json({ message: 'User was unblocked successfully' });
+  res.status(200).json({ message: "User was unblocked successfully" });
 });
 
 exports.blockAccount = catchAsync(async (req, res, next) => {
@@ -405,13 +436,13 @@ exports.blockAccount = catchAsync(async (req, res, next) => {
   const userToBlock = await User.findByPk(userId);
 
   if (!userToBlock) {
-    return next(new AppError('There is no user with such id', 404));
+    return next(new AppError("There is no user with such id", 404));
   }
 
   userToBlock.dataValues.isBlocked = true;
   await userToBlock.save();
 
-  res.status(200).json({ message: 'User account was blocked successfully' });
+  res.status(200).json({ message: "User account was blocked successfully" });
 });
 
 exports.unblockAccount = catchAsync(async (req, res, next) => {
@@ -419,13 +450,13 @@ exports.unblockAccount = catchAsync(async (req, res, next) => {
   const userToUnblock = await User.findByPk(userId);
 
   if (!userToUnblock) {
-    return next(new AppError('There is no user with such id', 404));
+    return next(new AppError("There is no user with such id", 404));
   }
 
   userToUnblock.dataValues.isBlocked = false;
   await userToUnblock.save();
 
-  res.status(200).json({ message: 'User account was unblocked successfully' });
+  res.status(200).json({ message: "User account was unblocked successfully" });
 });
 
 exports.report = catchAsync(async (req, res, next) => {
@@ -439,25 +470,33 @@ exports.report = catchAsync(async (req, res, next) => {
   const userToReport = await User.findByPk(userId);
 
   if (!userToReport) {
-    return next(new AppError('There is no user with such id', 404));
+    return next(new AppError("There is no user with such id", 404));
   }
 
   userToReport.dataValues.isReported = true;
   await userToReport.save();
 
-  res.status(200).json({ message: 'User account was reported successfully' });
+  res.status(200).json({ message: "User account was reported successfully" });
 });
 
 exports.addProfilePhoto = catchAsync(async (req, res, next) => {
   const { user, file } = req;
   const { buffer } = file;
 
-  const cldResponse = await resizeAndSave(buffer, { width: 100, height: 100 }, 'jpeg', 'users');
+  const cldResponse = await resizeAndSave(
+    buffer,
+    { width: 100, height: 100 },
+    "jpeg",
+    "users"
+  );
 
-  user.createPicture({ fileUrl: cldResponse.secure_url, publicId: cldResponse.public_id });
+  user.createPicture({
+    fileUrl: cldResponse.secure_url,
+    publicId: cldResponse.public_id,
+  });
 
   await user.save();
-  res.status(200).json({ message: 'Photo was added successfully' });
+  res.status(200).json({ message: "Photo was added successfully" });
 });
 
 exports.deleteProfilePhoto = catchAsync(async (req, res, next) => {
@@ -467,7 +506,7 @@ exports.deleteProfilePhoto = catchAsync(async (req, res, next) => {
   const photo = (await user.getPictures({ where: { id: photoId } }))[0];
 
   if (!photo) {
-    return next(new AppError('There is no such profile photo', 404));
+    return next(new AppError("There is no such profile photo", 404));
   }
 
   const { publicId } = photo.dataValues;
@@ -476,5 +515,5 @@ exports.deleteProfilePhoto = catchAsync(async (req, res, next) => {
 
   await photo.destroy();
 
-  res.status(200).json({ message: 'Photo was deleted successfully' });
+  res.status(200).json({ message: "Photo was deleted successfully" });
 });

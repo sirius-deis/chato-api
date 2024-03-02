@@ -1,28 +1,28 @@
-require('dotenv').config();
-const http = require('http');
-const app = require('./app');
-const { sequelize } = require('./db/db.config');
-const { redisConnect } = require('./db/redis.config');
-const logger = require('./api/logger');
-require('./associations');
+require("dotenv").config();
+const http = require("http");
+const app = require("./app");
+const { sequelize } = require("./db/db.config");
+const { redisConnect } = require("./db/redis.config");
+const logger = require("./api/logger");
+require("./associations");
 
 const { PORT = 3000 } = process.env;
 
 const server = http.createServer(app);
-require('./listeners/socket')(server);
+require("./listeners/socket")(server);
 
 const connect = async () => {
   try {
     await sequelize.authenticate();
-    logger.info('Connection has been established successfully.');
+    logger.info("Connection has been established successfully.");
   } catch (error) {
     logger.error(`${error}`);
   }
 };
 
 const sync = async () => {
-  await sequelize.sync({ force: false });
-  logger.info('All models were synchronized successfully.');
+  await sequelize.sync({ force: true });
+  logger.info("All models were synchronized successfully.");
 };
 
 const start = async () => {
@@ -35,13 +35,13 @@ const start = async () => {
   });
 };
 
-['unhandledRejection', 'uncaughtException'].forEach((event) => {
+["unhandledRejection", "uncaughtException"].forEach((event) => {
   const index = event.search(/[A-Z]/);
   process.on(event, (err) => {
     logger.error(
-      `${event.slice(0, index).toUpperCase()} ${event.slice(index).toUpperCase()}. \n ${
-        err.message
-      }`,
+      `${event.slice(0, index).toUpperCase()} ${event
+        .slice(index)
+        .toUpperCase()}. \n ${err.message}`
     );
     server.close(() => {
       process.exit(1);
@@ -49,11 +49,12 @@ const start = async () => {
   });
 });
 
-['SIGTERM', 'SIGINT', 'SIGQUIT'].forEach((event) => {
+["SIGTERM", "SIGINT", "SIGQUIT"].forEach((event) => {
   process.on(event, () => {
     logger.error(`${event} RECEIVED!`);
     server.close(() => {
-      logger.error('Process terminated');
+      logger.error("Process terminated");
+      server.off();
     });
   });
 });
