@@ -54,7 +54,7 @@ const start = async () => {
     logger.error(`${event} RECEIVED!`);
     server.close(() => {
       logger.error("Process terminated");
-      server.off();
+      process.exit(1);
     });
   });
 });
