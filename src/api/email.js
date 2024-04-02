@@ -36,7 +36,7 @@ transporter.use("compile", hbs(handlebarOptions));
 
 const sendMail = async (to, subject, template, context) => {
   const mailOptions = {
-    from: `< Name Surname ${EMAIL_USER}>`,
+    from: `${context.name} <${EMAIL_USER}>`,
     to,
     subject,
     template: `${template}.emails`,

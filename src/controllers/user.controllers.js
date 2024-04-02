@@ -66,6 +66,23 @@ exports.signup = catchAsync(async (req, res, next) => {
       )
     );
   }
+
+  const user = await User.findOne({ where: { email } });
+  if (user) {
+    if (!user.isActive) {
+      return next(
+        new AppError(
+          "Email is taken but not activated. Please activate your account",
+          400
+        )
+      );
+    } else {
+      return next(
+        new AppError("Email is taken. Please provide another email", 400)
+      );
+    }
+  }
+
   let link;
   await sequelize.transaction(async () => {
     const user = await User.create({ email, password, isActive: true });
