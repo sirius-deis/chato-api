@@ -190,7 +190,7 @@ exports.activate = catchAsync(async (req, res, next) => {
 
 exports.getUser = catchAsync(async (req, res, next) => {
   const { user } = req;
-  const { userId } = req.params;
+  const { userId, phone } = req.params;
 
   if (user.dataValues.id.toString() === userId) {
     const photos = await user.getPictures({
@@ -213,9 +213,14 @@ exports.getUser = catchAsync(async (req, res, next) => {
     });
   }
 
-  const retrievedUser = await User.findByPk(userId);
+  let retrievedUser = await User.findByPk(userId);
   if (!retrievedUser) {
-    return next(new AppError("There is no user with such id", 404));
+    retrievedUser = await User.findOne({
+      where: { phone },
+    });
+    if (!retrievedUser) {
+      return next(new AppError("There is no user with such id", 404));
+    }
   }
 
   const photos = await retrievedUser.getPictures({
