@@ -1,9 +1,9 @@
-const { DataTypes } = require('sequelize');
-const bcrypt = require('bcrypt');
-const { sequelize } = require('../db/db.config');
+const { DataTypes } = require("sequelize");
+const bcrypt = require("bcrypt");
+const { sequelize } = require("../db/db.config");
 
 const User = sequelize.define(
-  'users',
+  "users",
   {
     id: {
       type: DataTypes.INTEGER,
@@ -29,12 +29,12 @@ const User = sequelize.define(
     },
     passwordChangedAt: {
       type: DataTypes.DATE,
-      field: 'password_changed_at',
+      field: "password_changed_at",
     },
     userName: {
       type: DataTypes.STRING(20),
       get() {
-        return this.getDataValue('userName') || this.getDataValue('email');
+        return this.getDataValue("userName") || this.getDataValue("email");
       },
     },
     bio: {
@@ -53,8 +53,8 @@ const User = sequelize.define(
       defaultValue: false,
     },
     role: {
-      type: DataTypes.ENUM('user', 'moderator', 'admin'),
-      defaultValue: 'user',
+      type: DataTypes.ENUM("user", "moderator", "admin"),
+      defaultValue: "user",
     },
     lastSeen: {
       type: DataTypes.DATE,
@@ -68,7 +68,7 @@ const User = sequelize.define(
         }
       },
       beforeUpdate: async (user) => {
-        if (user.changed('password')) {
+        if (user.changed("password")) {
           user.password = await bcrypt.hash(user.password, 10);
           user.passwordChangedAt = new Date();
         }
@@ -77,34 +77,34 @@ const User = sequelize.define(
     defaultScope: {
       attributes: {
         exclude: [
-          'lastSeen',
-          'isOnline',
-          'isActive',
-          'isReported',
-          'isBlocked',
-          'passwordChangedAt',
-          'createdAt',
-          'updatedAt',
-          'password',
+          "lastSeen",
+          "isOnline",
+          "isActive",
+          "isReported",
+          "isBlocked",
+          "passwordChangedAt",
+          "createdAt",
+          "updatedAt",
+          "password",
         ],
       },
     },
-  },
+  }
 );
 
 User.prototype.validatePassword = function (password) {
   return bcrypt.compare(password, this.password);
 };
 
-User.addScope('withPassword', {
+User.addScope("withPassword", {
   attributes: {
-    include: ['password'],
+    include: ["password"],
   },
 });
 
-User.addScope('withIsActive', {
+User.addScope("withIsActive", {
   attributes: {
-    include: ['isActive'],
+    include: ["isActive"],
   },
 });
 
