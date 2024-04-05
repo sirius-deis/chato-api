@@ -550,9 +550,9 @@ exports.setProfilePhoto = catchAsync(async (req, res, next) => {
     return next(new AppError("There is no such profile photo", 404));
   }
 
-  const { publicId } = photo.dataValues;
+  const { id } = photo.dataValues;
 
-  user.profilePictureId = publicId;
+  user.profilePictureId = id;
 
   await user.save();
 
