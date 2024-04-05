@@ -505,6 +505,9 @@ exports.addProfilePhoto = catchAsync(async (req, res, next) => {
   const { user, file } = req;
   const { buffer } = file;
 
+  const photosLength = (await user.getPictures({ where: { id: photoId } }))
+    .length;
+
   const cldResponse = await resizeAndSave(
     buffer,
     { width: 100, height: 100 },
@@ -512,10 +515,14 @@ exports.addProfilePhoto = catchAsync(async (req, res, next) => {
     "users"
   );
 
-  user.createPicture({
+  const createdPicture = await user.createPicture({
     fileUrl: cldResponse.secure_url,
     publicId: cldResponse.public_id,
   });
+
+  if (photosLength < 1) {
+    user.profilePictureId = createdPicture.id;
+  }
 
   await user.save();
   res.status(200).json({ message: "Photo was added successfully" });
