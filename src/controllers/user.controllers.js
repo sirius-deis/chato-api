@@ -539,3 +539,22 @@ exports.deleteProfilePhoto = catchAsync(async (req, res, next) => {
 
   res.status(200).json({ message: "Photo was deleted successfully" });
 });
+
+exports.setProfilePhoto = catchAsync(async (req, res, next) => {
+  const { user } = req;
+  const { photoId } = req.params;
+
+  const photo = (await user.getPictures({ where: { id: photoId } }))[0];
+
+  if (!photo) {
+    return next(new AppError("There is no such profile photo", 404));
+  }
+
+  const { publicId } = photo.dataValues;
+
+  user.profilePictureId = publicId;
+
+  await user.save();
+
+  res.status(200).json({ message: "Photo was set successfully" });
+});
