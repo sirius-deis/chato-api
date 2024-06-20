@@ -1,7 +1,7 @@
-const { DataTypes } = require('sequelize');
-const { sequelize } = require('../db/db.config');
+const { DataTypes } = require("sequelize");
+const { sequelize } = require("../db/db.config");
 
-const Chat = sequelize.define('chat', {
+const Chat = sequelize.define("chat", {
   id: {
     type: DataTypes.INTEGER,
     autoIncrement: true,
@@ -12,12 +12,9 @@ const Chat = sequelize.define('chat', {
     type: DataTypes.STRING(40),
   },
   type: {
-    type: DataTypes.ENUM('private', 'group', 'channel'),
-    defaultValue: 'private',
+    type: DataTypes.ENUM("private", "group", "channel"),
+    defaultValue: "private",
     allowNull: false,
-  },
-  pictures: {
-    type: DataTypes.JSON,
   },
 });
 

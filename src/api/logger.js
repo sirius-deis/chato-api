@@ -1,7 +1,7 @@
-const { createLogger, format, addColors, transports } = require('winston');
+const { createLogger, format, addColors, transports } = require("winston");
 
 const logger = createLogger({
-  level: 'debug',
+  level: "debug",
   format: format.combine(
     format.json(),
     format.colorize(),
@@ -9,16 +9,18 @@ const logger = createLogger({
     format.timestamp(),
     format.align(),
     format.prettyPrint(),
-    format.printf((info) => `[${info.timestamp}] ${info.level}: ${info.message}`),
+    format.printf(
+      (info) => `[${info.timestamp}] ${info.level}: ${info.message}`
+    )
   ),
   transports: [new transports.Console()],
 });
 
 addColors({
-  info: 'green',
-  error: 'red',
-  warn: 'orange',
-  debug: 'yellow',
+  info: "green",
+  error: "red",
+  warn: "orange",
+  debug: "yellow",
 });
 
 module.exports = logger;
