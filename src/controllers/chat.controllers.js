@@ -468,7 +468,7 @@ exports.changeUserRoleInChat = catchAsync(async (req, res, next) => {
     return next(
       new AppError(
         "You can't perform such an operation to private conversation",
-        400
+        403
       )
     );
   }
@@ -510,14 +510,23 @@ exports.addPicture = catchAsync(async (req, res, next) => {
   const chat = await findChat(chatId);
 
   const participants = await chat.getUsers();
-  if (
-    !participants.find(
-      (participant) =>
-        participant.dataValues.id.toString() === user.dataValues.id.toString()
-    )
-  ) {
+
+  const participant = participants.find(
+    (participant) =>
+      participant.dataValues.id.toString() === user.dataValues.id.toString()
+  );
+  if (!participant) {
     return next(
       new AppError("There is no such conversation for selected user", 403)
+    );
+  }
+
+  if (participant.role !== "owner") {
+    return next(
+      new AppError(
+        "You can't perform such an operation with your current role",
+        403
+      )
     );
   }
 
