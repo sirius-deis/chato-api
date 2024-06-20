@@ -546,3 +546,45 @@ exports.addPicture = catchAsync(async (req, res, next) => {
 
   res.status(200).json({ message: "Photo was added successfully" });
 });
+
+exports.deletePicture = catchAsync(async (req, res, next) => {
+  const { user, chatId } = req;
+  const { photoId } = req.params;
+
+  const chat = await findChat(chatId);
+
+  const participants = await chat.getUsers();
+
+  const participant = participants.find(
+    (participant) =>
+      participant.dataValues.id.toString() === user.dataValues.id.toString()
+  );
+  if (!participant) {
+    return next(
+      new AppError("There is no such conversation for selected user", 403)
+    );
+  }
+
+  if (participant.role !== "owner") {
+    return next(
+      new AppError(
+        "You can't perform such an operation with your current role",
+        403
+      )
+    );
+  }
+
+  const photo = (await chat.getPictures({ where: { id: photoId } }))[0];
+
+  if (!photo) {
+    return next(new AppError("There is no such picture", 404));
+  }
+
+  const { publicId } = photo.dataValues;
+
+  await deleteFile(publicId);
+
+  await photo.destroy();
+
+  res.status(200).json({ message: "Photo was deleted successfully" });
+});
