@@ -50,7 +50,17 @@ const addAmountOfUnreadMessages = async (conversationList) =>
     })
   );
 
-const checkChatType = (chat, type) => chat.dataValues.type === type;
+const checkChatType = (chat, type) => {
+  if (chat.dataValues.type === type) {
+    return true;
+  }
+};
+
+const checkRolesAccess = (role, roles) => {
+  if (roles.includes(role)) {
+    return true;
+  }
+};
 
 exports.getAllChats = catchAsync(async (req, res, next) => {
   const { user } = req;
@@ -485,7 +495,7 @@ exports.changeUserRoleInChat = catchAsync(async (req, res, next) => {
 
   const mainParticipant = participants[0].participants.dataValues;
 
-  if (["user", "admin"].includes(mainParticipant.role)) {
+  if (checkRolesAccess(mainParticipant.role, ["user", "admin"])) {
     return next(
       new AppError("You can't change users role with your current role", 403)
     );
@@ -521,7 +531,7 @@ exports.addPicture = catchAsync(async (req, res, next) => {
     );
   }
 
-  if (participant.role !== "owner") {
+  if (!checkRolesAccess(participant.role, ["owner"])) {
     return next(
       new AppError(
         "You can't perform such an operation with your current role",
@@ -565,7 +575,7 @@ exports.deletePicture = catchAsync(async (req, res, next) => {
     );
   }
 
-  if (participant.role !== "owner") {
+  if (!checkRolesAccess(participant.role, ["owner"])) {
     return next(
       new AppError(
         "You can't perform such an operation with your current role",
