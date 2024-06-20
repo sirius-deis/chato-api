@@ -17,7 +17,6 @@ const {
   findChat,
 } = require("../utils/conversation");
 const Chat = require("../models/chat.models");
-const { where, or } = require("sequelize");
 
 const replaceConversationNamesWithUserName = async (conversationList, userId) =>
   await Promise.all(
@@ -118,12 +117,10 @@ exports.findChats = catchAsync(async (req, res, next) => {
     });
   }
 
-  return res
-    .status(200)
-    .json({
-      message: "Conversations were found",
-      data: { chats: [...users, ...chats] },
-    });
+  return res.status(200).json({
+    message: "Conversations were found",
+    data: { chats: [...users, ...chats] },
+  });
 });
 
 exports.createPrivateChat = catchAsync(async (req, res, next) => {
@@ -504,4 +501,39 @@ exports.changeUserRoleInChat = catchAsync(async (req, res, next) => {
   res.status(200).json({
     message: "User role was changed successfully",
   });
+});
+
+exports.addPicture = catchAsync(async (req, res, next) => {
+  const { user, chatId, file } = req;
+  const { buffer } = file;
+
+  const chat = await findChat(chatId);
+
+  const participants = await chat.getUsers();
+  if (
+    !participants.find(
+      (participant) =>
+        participant.dataValues.id.toString() === user.dataValues.id.toString()
+    )
+  ) {
+    return next(
+      new AppError("There is no such conversation for selected user", 403)
+    );
+  }
+
+  const cldResponse = await resizeAndSave(
+    buffer,
+    { width: 100, height: 100 },
+    "jpeg",
+    "chats"
+  );
+
+  await chat.createPicture({
+    fileUrl: cldResponse.secure_url,
+    publicId: cldResponse.public_id,
+  });
+
+  await chat.save();
+
+  res.status(200).json({ message: "Photo was added successfully" });
 });

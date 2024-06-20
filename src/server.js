@@ -21,7 +21,7 @@ const connect = async () => {
 };
 
 const sync = async () => {
-  await sequelize.sync({ force: true });
+  await sequelize.sync({ force: false });
   logger.info("All models were synchronized successfully.");
 };
 
