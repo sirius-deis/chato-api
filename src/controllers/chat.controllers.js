@@ -316,11 +316,15 @@ exports.addUserToGroupChat = catchAsync(async (req, res, next) => {
     );
   }
 
+  if (!(await chat.hasUser(userToInviteId))) {
+    return next(new AppError("Provided user is already in this group", 401));
+  }
+
   const groupBlockList = await GroupBlockList.findOne({
     where: Sequelize.and({ userId: user.dataValues.id }, { chatId }),
   });
   if (groupBlockList) {
-    return next(new AppError("You were blocked this group", 400));
+    return next(new AppError("You were blocked by this group", 400));
   }
 
   chat.addUser(userToInviteId, { through: { role: "user" } });

@@ -89,3 +89,6 @@ User.belongsTo(Picture, { foreignKey: "profilePictureId" });
 
 Chat.hasMany(Picture, { onDelete: "cascade", foreignKey: "chatId" });
 Picture.belongsTo(Chat, { foreignKey: "chatId" });
+
+Picture.hasOne(Chat, { onDelete: "cascade", foreignKey: "profilePictureId" });
+Chat.belongsTo(Picture, { foreignKey: "profilePictureId" });
