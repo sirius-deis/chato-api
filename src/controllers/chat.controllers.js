@@ -5,37 +5,18 @@ const User = require("../models/user.models");
 const Participant = require("../models/participant.models");
 const { Sequelize, sequelize } = require("../db/db.config");
 const DeletedMessage = require("../models/deletedMessage.models");
-const DeletedConversation = require("../models/deletedConversation.models");
+const DeletedChat = require("../models/deletedChat.models");
 const GroupBlockList = require("../models/groupBlockList");
 const {
   isUserIdsTheSame,
   getReceiverIfExists,
   isUserBlocked,
-  findConversationId,
-  checkIfConversationWasDeletedAndRestoreIfYes,
+  findChatId,
+  checkIfChatWasDeletedAndRestoreIfYes,
   createChat,
   findChat,
-} = require("../utils/conversation");
+} = require("../utils/chat");
 const Chat = require("../models/chat.models");
-
-const replaceConversationNamesWithUserName = async (conversationList, userId) =>
-  await Promise.all(
-    conversationList.map(async (conversation) => {
-      if (conversation.dataValues.type === "private") {
-        const interlocutor = (
-          await conversation.getUsers({
-            where: {
-              id: {
-                [Sequelize.Op.not]: userId,
-              },
-            },
-          })
-        )[0];
-        conversation.dataValues.title = interlocutor.get("userName");
-      }
-      return conversation;
-    })
-  );
 
 const addAmountOfUnreadMessages = async (conversationList) =>
   await Promise.all(
@@ -85,21 +66,17 @@ exports.getAllChats = catchAsync(async (req, res, next) => {
   }
 
   // eslint-disable-next-line max-len
-  const deletedConversationsForUser = await DeletedConversation.findAll({
+  const deletedChatsForUser = await DeletedChat.findAll({
     where: { userId: user.dataValues.id },
   });
-  const deletedIds = deletedConversationsForUser.map(
+  const deletedIds = deletedChatsForUser.map(
     (conversation) => conversation.dataValues.id.toString()
     // eslint-disable-next-line function-paren-newline
   );
   const chatsWithoutDeleted = chats.filter(
     (chat) => !deletedIds.includes(chat.dataValues.id.toString())
   );
-  const chatsWithReplacedNames = await replaceConversationNamesWithUserName(
-    chatsWithoutDeleted,
-    user.dataValues.id
-  );
-  const chatList = await addAmountOfUnreadMessages(chatsWithReplacedNames);
+  const chatList = await addAmountOfUnreadMessages(chatsWithoutDeleted);
 
   return res.status(200).json({
     message: "Conversations were found",
@@ -152,14 +129,11 @@ exports.createPrivateChat = catchAsync(async (req, res, next) => {
     return next(new AppError("You were blocked by this user", 400));
   }
 
-  const conversationId = await findConversationId(user, receiver);
+  const chatId = await findChatId(user, receiver);
 
-  if (conversationId) {
+  if (chatId) {
     if (
-      await checkIfConversationWasDeletedAndRestoreIfYes(
-        user.dataValues.id,
-        conversationId
-      )
+      await checkIfChatWasDeletedAndRestoreIfYes(user.dataValues.id, chatId)
     ) {
       return res.status(200).json({
         message: "Conversation was created successfully",
@@ -170,7 +144,9 @@ exports.createPrivateChat = catchAsync(async (req, res, next) => {
     );
   }
 
-  await createChat(user.dataValues.id, receiver.dataValues.id);
+  await createChat(user.dataValues.id, receiver.dataValues.id, {
+    title: receiver.get("userName"),
+  });
 
   res.status(201).json({
     message: "Conversation was created successfully",
@@ -226,7 +202,7 @@ exports.deleteChat = catchAsync(async (req, res, next) => {
     });
   }
 
-  const isDeleted = await DeletedConversation.findOne({
+  const isDeleted = await DeletedChat.findOne({
     where: Sequelize.and(
       {
         userId: user.dataValues.id,
@@ -255,7 +231,7 @@ exports.deleteChat = catchAsync(async (req, res, next) => {
 
   await Promise.all(deletedMessagePromises);
 
-  await DeletedConversation.create({
+  await DeletedChat.create({
     userId: user.dataValues.id,
     chatId,
   });

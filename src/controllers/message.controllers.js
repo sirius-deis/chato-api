@@ -1,21 +1,21 @@
-const catchAsync = require('../utils/catchAsync');
-const AppError = require('../utils/appError');
-const { Sequelize, sequelize } = require('../db/db.config');
-const Message = require('../models/message.models');
-const DeletedMessage = require('../models/deletedMessage.models');
-const MessageReaction = require('../models/messageReaction.models');
-const Attachment = require('../models/attachment.models');
-const Chat = require('../models/chat.models');
-const GroupBlockList = require('../models/groupBlockList');
-const { findChat } = require('../utils/conversation');
+const catchAsync = require("../utils/catchAsync");
+const AppError = require("../utils/appError");
+const { Sequelize, sequelize } = require("../db/db.config");
+const Message = require("../models/message.models");
+const DeletedMessage = require("../models/deletedMessage.models");
+const MessageReaction = require("../models/messageReaction.models");
+const Attachment = require("../models/attachment.models");
+const Chat = require("../models/chat.models");
+const GroupBlockList = require("../models/groupBlockList");
+const { findChat } = require("../utils/chat");
 const {
   createMessage,
   findOneDeletedMessage,
   addAttachments,
   filterDeletedMessages,
   findOneMessage,
-} = require('../utils/message');
-const { isUserBlockedByAnotherUser } = require('../utils/user');
+} = require("../utils/message");
+const { isUserBlockedByAnotherUser } = require("../utils/user");
 
 const countDeletedMessagesById = (array) => {
   const map = {};
@@ -60,21 +60,28 @@ exports.getMessages = catchAsync(async (req, res, next) => {
     include: {
       model: Attachment,
     },
-    order: [['createdAt', 'DESC']],
+    order: [["createdAt", "DESC"]],
   });
 
   if (messages.length < 1) {
-    return next(new AppError('There are no messages for such conversation', 404));
+    return next(
+      new AppError("There are no messages for such conversation", 404)
+    );
   }
 
-  const messagesWithoutDeleted = await filterDeletedMessages(user.dataValues.id, ...messages);
+  const messagesWithoutDeleted = await filterDeletedMessages(
+    user.dataValues.id,
+    ...messages
+  );
 
   if (!messagesWithoutDeleted.length) {
-    return next(new AppError('There are no messages for such conversation', 404));
+    return next(
+      new AppError("There are no messages for such conversation", 404)
+    );
   }
 
   res.status(200).json({
-    message: 'Your messages were retrieved successfully',
+    message: "Your messages were retrieved successfully",
     data: {
       messages: messagesWithoutDeleted,
     },
@@ -90,7 +97,7 @@ exports.getMessage = catchAsync(async (req, res, next) => {
       {
         id: messageId,
       },
-      { chatId },
+      { chatId }
     ),
     include: {
       model: Attachment,
@@ -98,25 +105,28 @@ exports.getMessage = catchAsync(async (req, res, next) => {
   });
 
   if (!message) {
-    return next(new AppError('There is no message with such id', 404));
+    return next(new AppError("There is no message with such id", 404));
   }
 
   if (
     !(await (await message.getChat()).getUsers()).find(
-      (participant) => participant.dataValues.id === user.dataValues.id,
+      (participant) => participant.dataValues.id === user.dataValues.id
     )
   ) {
-    return next(new AppError('This message is not your', 403));
+    return next(new AppError("This message is not your", 403));
   }
 
-  const messagesWithoutDeleted = await filterDeletedMessages(user.dataValues.id, message);
+  const messagesWithoutDeleted = await filterDeletedMessages(
+    user.dataValues.id,
+    message
+  );
 
   if (!messagesWithoutDeleted[0]) {
-    return next(new AppError('There is no message with such id', 404));
+    return next(new AppError("There is no message with such id", 404));
   }
 
   res.status(200).json({
-    message: 'Your message was retrieved successfully',
+    message: "Your message was retrieved successfully",
     data: {
       message: messagesWithoutDeleted[0].dataValues,
     },
@@ -131,46 +141,65 @@ exports.addMessage = catchAsync(async (req, res, next) => {
   const chat = await findChat(chatId);
 
   if (!chat) {
-    return next(new AppError('There is no conversation with such id', 404));
+    return next(new AppError("There is no conversation with such id", 404));
   }
 
   const participants = await chat.getUsers();
-  if (!participants.find((participant) => participant.dataValues.id === user.dataValues.id)) {
-    return next(new AppError('There is no conversation with such id for this user', 404));
+  if (
+    !participants.find(
+      (participant) => participant.dataValues.id === user.dataValues.id
+    )
+  ) {
+    return next(
+      new AppError("There is no conversation with such id for this user", 404)
+    );
   }
-  if (chat.dataValues.type === 'private') {
+  if (chat.dataValues.type === "private") {
     const receiver = participants.find(
-      (participant) => participant.dataValues.id !== user.dataValues.id,
+      (participant) => participant.dataValues.id !== user.dataValues.id
     );
 
     if (await isUserBlockedByAnotherUser(user.dataValues.id, receiver)) {
-      return next(new AppError('You were blocked by selected user', 400));
+      return next(new AppError("You were blocked by selected user", 400));
     }
   } else {
     const groupBlockList = await GroupBlockList.findOne({
       where: Sequelize.and({ userId: user.dataValues.id }, { chatId }),
     });
     if (groupBlockList) {
-      return next(new AppError('You were blocked in this group', 400));
+      return next(new AppError("You were blocked in this group", 400));
     }
   }
 
   if (repliedMessageId) {
     const repliedMessage = await Message.findByPk(repliedMessageId);
     if (!repliedMessage) {
-      return next(new AppError('There is no message to reply with such id', 400));
+      return next(
+        new AppError("There is no message to reply with such id", 400)
+      );
     }
 
-    const deletedMessageToReply = await findOneDeletedMessage(user.dataValues.id, repliedMessageId);
+    const deletedMessageToReply = await findOneDeletedMessage(
+      user.dataValues.id,
+      repliedMessageId
+    );
 
     if (deletedMessageToReply) {
-      return next(new AppError('There is no message to reply with such id', 400));
+      return next(
+        new AppError("There is no message to reply with such id", 400)
+      );
     }
   }
 
-  await createMessage({ chatId, senderId: user.dataValues.id, message, repliedMessageId, files });
+  await createMessage({
+    chatId,
+    senderId: user.dataValues.id,
+    message,
+    repliedMessageId,
+    files,
+  });
 
-  res.status(201).json({ message: 'Your message was sent successfully' });
+  res.status(201).json({ message: "Your message was sent successfully" });
 });
 
 exports.editMessage = catchAsync(async (req, res, next) => {
@@ -183,13 +212,18 @@ exports.editMessage = catchAsync(async (req, res, next) => {
   });
 
   if (!foundMessage) {
-    return next(new AppError('There is no such message that you can edit', 404));
+    return next(
+      new AppError("There is no such message that you can edit", 404)
+    );
   }
 
-  const messagesWithoutDeleted = await filterDeletedMessages(user.dataValues.id, foundMessage);
+  const messagesWithoutDeleted = await filterDeletedMessages(
+    user.dataValues.id,
+    foundMessage
+  );
 
   if (!messagesWithoutDeleted[0]) {
-    return next(new AppError('There is no message with such id', 404));
+    return next(new AppError("There is no message with such id", 404));
   }
 
   foundMessage.message = message;
@@ -197,7 +231,7 @@ exports.editMessage = catchAsync(async (req, res, next) => {
 
   await addAttachments(foundMessage, files);
 
-  res.status(200).json({ message: 'Your message was edited successfully' });
+  res.status(200).json({ message: "Your message was edited successfully" });
 });
 
 exports.deleteMessage = catchAsync(async (req, res, next) => {
@@ -210,22 +244,30 @@ exports.deleteMessage = catchAsync(async (req, res, next) => {
   });
 
   if (foundMessages.length < 1) {
-    return next(new AppError('There is no message with provided ids in this conversation', 404));
+    return next(
+      new AppError(
+        "There is no message with provided ids in this conversation",
+        404
+      )
+    );
   }
 
   const chat = await Chat.findByPk(chatId);
 
-  if (chat.dataValues.type === 'group') {
-    const userRole = (await chat.getUsers({ where: { id: user.dataValues.id } }))[0].participants
-      .dataValues.role;
+  if (chat.dataValues.type === "group") {
+    const userRole = (
+      await chat.getUsers({ where: { id: user.dataValues.id } })
+    )[0].participants.dataValues.role;
 
-    if (!['owner', 'admin'].includes(userRole)) {
+    if (!["owner", "admin"].includes(userRole)) {
       await Message.destroy({ where: { id: messagesId } });
     } else {
       const messagesToDelete = [];
       for (let i = 0; i < foundMessages.length; i += 1) {
         if (user.dataValues.id !== foundMessages[i].senderId) {
-          return next(new AppError("You can't delete message that is not your", 403));
+          return next(
+            new AppError("You can't delete message that is not your", 403)
+          );
         }
         messagesToDelete.push(foundMessages[i].destroy());
       }
@@ -235,17 +277,20 @@ exports.deleteMessage = catchAsync(async (req, res, next) => {
     return res.status(204).send();
   }
 
-  const messagesWithoutDeleted = await filterDeletedMessages(user.dataValues.id, ...foundMessages);
+  const messagesWithoutDeleted = await filterDeletedMessages(
+    user.dataValues.id,
+    ...foundMessages
+  );
 
   if (messagesWithoutDeleted.length < 1) {
-    return next(new AppError('There is no messages with such ids', 404));
+    return next(new AppError("There is no messages with such ids", 404));
   }
 
   const deletedMessagesFromFound = messagesWithoutDeleted.map((message) =>
     DeletedMessage.create({
       messageId: message.dataValues.id,
       userId: user.dataValues.id,
-    }),
+    })
   );
 
   await Promise.all(deletedMessagesFromFound);
@@ -256,7 +301,8 @@ exports.deleteMessage = catchAsync(async (req, res, next) => {
     },
   });
 
-  const deletedMessagesMapGroupedById = countDeletedMessagesById(deletedMessages);
+  const deletedMessagesMapGroupedById =
+    countDeletedMessagesById(deletedMessages);
 
   const transactionsArr = [];
 
@@ -271,8 +317,8 @@ exports.deleteMessage = catchAsync(async (req, res, next) => {
               await DeletedMessage.destroy({ where: { messagesId: id } }),
               await Message.destroy({ where: { id } }),
               await Attachment.destroy({ where: { messagesId: id } }),
-            ]),
-        ),
+            ])
+        )
       );
     }
   }
@@ -291,7 +337,9 @@ exports.unsendMessage = catchAsync(async (req, res, next) => {
   });
 
   if (!foundMessage || foundMessage.dataValues.isRead) {
-    return next(new AppError('There is no such message that you can unsend', 404));
+    return next(
+      new AppError("There is no such message that you can unsend", 404)
+    );
   }
   await sequelize.transaction(async () => {
     await foundMessage.removeAttachments();
@@ -311,7 +359,7 @@ exports.reactOnMessage = catchAsync(async (req, res, next) => {
   });
 
   if (!foundMessage) {
-    return next(new AppError('There is no such message to react to', 404));
+    return next(new AppError("There is no such message to react to", 404));
   }
 
   const messageReaction = await MessageReaction.findOne({
@@ -327,7 +375,7 @@ exports.reactOnMessage = catchAsync(async (req, res, next) => {
     } else {
       messageReaction.reaction = reaction;
     }
-    res.status(202).json({ message: 'Reaction was updated successfully' });
+    res.status(202).json({ message: "Reaction was updated successfully" });
   } else {
     await MessageReaction.create({
       userId: user.dataValues.id,
@@ -345,20 +393,30 @@ exports.forwardMessages = catchAsync(async (req, res, next) => {
   const { messageId, chatId } = req.params;
   const message = await Message.findByPk(messageId);
   if (!message) {
-    next(new AppError('There is no message with such id', 404));
+    next(new AppError("There is no message with such id", 404));
   }
 
   const chat = await Chat.findByPk(chatId);
   if (!chat) {
-    next(new AppError('There is no chat with such id', 404));
+    next(new AppError("There is no chat with such id", 404));
   }
 
   const participants = await chat.getUsers();
-  if (!participants.find((participant) => participant.dataValues.id === user.dataValues.id)) {
-    return next(new AppError('There is no chat with such id for this user', 404));
+  if (
+    !participants.find(
+      (participant) => participant.dataValues.id === user.dataValues.id
+    )
+  ) {
+    return next(
+      new AppError("There is no chat with such id for this user", 404)
+    );
   }
 
-  await createMessage({ chatId, senderId: user.dataValues.id, forwardMessageId: messageId });
+  await createMessage({
+    chatId,
+    senderId: user.dataValues.id,
+    forwardMessageId: messageId,
+  });
 
   res.status(201).send();
 });

@@ -5,7 +5,7 @@ const Chat = require("./models/chat.models");
 const Participant = require("./models/participant.models");
 const Message = require("./models/message.models");
 const DeletedMessage = require("./models/deletedMessage.models");
-const DeletedConversation = require("./models/deletedConversation.models");
+const DeletedChat = require("./models/deletedChat.models");
 const MessageReaction = require("./models/messageReaction.models");
 const Attachment = require("./models/attachment.models");
 const Picture = require("./models/picture.models");
@@ -33,11 +33,11 @@ Message.hasMany(Attachment, { onDelete: "cascade", foreignKey: "messageId" });
 Attachment.belongsTo(Message, { foreignKey: "messageId" });
 
 User.belongsToMany(Chat, {
-  through: DeletedConversation,
+  through: DeletedChat,
   foreignKey: "userId",
 });
 Chat.belongsToMany(User, {
-  through: DeletedConversation,
+  through: DeletedChat,
   foreignKey: "chatId",
 });
 
