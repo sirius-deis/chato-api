@@ -292,7 +292,7 @@ exports.addUserToGroupChat = catchAsync(async (req, res, next) => {
     );
   }
 
-  if (!(await chat.hasUser(userToInviteId))) {
+  if (await chat.hasUser(userToInviteId)) {
     return next(new AppError("Provided user is already in this group", 401));
   }
 
