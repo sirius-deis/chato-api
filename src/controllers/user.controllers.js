@@ -245,7 +245,6 @@ exports.getUser = catchAsync(async (req, res, next) => {
 exports.updateMe = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { name: userName, email, bio } = req.body;
-    console.log('!!!!!TEST!!!!!', userName, email, bio);
 
   const fieldsToInsert = filterFieldsForUpdating({
     userName,
@@ -261,6 +260,9 @@ exports.updateMe = catchAsync(async (req, res, next) => {
 
   res.status(200).json({
     message: "Your data was updated successfully",
+    data: {
+        ...fieldsToInsert
+    }
   });
 });
 
