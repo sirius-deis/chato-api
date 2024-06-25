@@ -18,16 +18,19 @@ const {
 } = require("../utils/chat");
 const Chat = require("../models/chat.models");
 
-const addAmountOfUnreadMessages = async (conversationList) =>
+const addAmountOfUnreadMessages = async (chatList, userId) =>
   await Promise.all(
-    conversationList.map(async (conversation) => {
-      const unreadMessagesCount = await conversation.countMessages({
+    chatList.map(async (chat) => {
+      const unreadMessagesCount = await chat.countMessages({
         where: {
           isRead: false,
+          senderId: {
+            [Sequelize.Op.ne]: userId,
+          },
         },
       });
-      conversation.dataValues.unreadMessagesCount = unreadMessagesCount;
-      return conversation;
+      chat.dataValues.unreadMessagesCount = unreadMessagesCount;
+      return chat;
     })
   );
 
@@ -58,7 +61,7 @@ exports.getAllChats = catchAsync(async (req, res, next) => {
 
   if (!chats.length) {
     return res.status(200).json({
-      message: "This user doesn't participate in any conversations",
+      message: "This user doesn't participate in any chats",
       data: {
         chats: [],
       },
@@ -76,10 +79,13 @@ exports.getAllChats = catchAsync(async (req, res, next) => {
   const chatsWithoutDeleted = chats.filter(
     (chat) => !deletedIds.includes(chat.dataValues.id.toString())
   );
-  const chatList = await addAmountOfUnreadMessages(chatsWithoutDeleted);
+  const chatList = await addAmountOfUnreadMessages(
+    chatsWithoutDeleted,
+    user.id
+  );
 
   return res.status(200).json({
-    message: "Conversations were found",
+    message: "Chats were found",
     data: {
       chats: chatList,
     },
@@ -97,7 +103,7 @@ exports.findChats = catchAsync(async (req, res, next) => {
 
   if (users.length < 1 || chats.length < 1) {
     return res.status(404).json({
-      message: "There is no conversation with such name",
+      message: "There is no chat with such name",
       data: {
         chats: [],
       },
@@ -105,7 +111,7 @@ exports.findChats = catchAsync(async (req, res, next) => {
   }
 
   return res.status(200).json({
-    message: "Conversations were found",
+    message: "Chats were found",
     data: { chats: [...users, ...chats] },
   });
 });
@@ -115,9 +121,7 @@ exports.createPrivateChat = catchAsync(async (req, res, next) => {
   const { userId: receiverId } = req.params;
 
   if (isUserIdsTheSame(user.dataValues.id.toString(), receiverId)) {
-    return next(
-      new AppError("You can't start conversation with yourself", 400)
-    );
+    return next(new AppError("You can't start a chat with yourself", 400));
   }
 
   const receiver = await getReceiverIfExists(receiverId);
@@ -136,12 +140,10 @@ exports.createPrivateChat = catchAsync(async (req, res, next) => {
       await checkIfChatWasDeletedAndRestoreIfYes(user.dataValues.id, chatId)
     ) {
       return res.status(200).json({
-        message: "Conversation was created successfully",
+        message: "Chat was created successfully",
       });
     }
-    return next(
-      new AppError("Conversation with this user is already exists", 400)
-    );
+    return next(new AppError("Chat with this user is already exists", 400));
   }
 
   await createChat(user.dataValues.id, receiver.dataValues.id, {
@@ -149,7 +151,7 @@ exports.createPrivateChat = catchAsync(async (req, res, next) => {
   });
 
   res.status(201).json({
-    message: "Conversation was created successfully",
+    message: "Chat was created successfully",
   });
 });
 
@@ -159,7 +161,7 @@ exports.createGroupChat = catchAsync(async (req, res, next) => {
   await createChat(user.dataValues.id, null, { title, type: "group" });
 
   res.status(201).json({
-    message: "Group conversation was created successfully",
+    message: "Group chat was created successfully",
   });
 });
 
@@ -170,7 +172,7 @@ exports.deleteChat = catchAsync(async (req, res, next) => {
   const chat = await findChat(chatId, Message);
 
   if (!chat) {
-    return next(new AppError("There is no such conversation", 404));
+    return next(new AppError("There is no such chat", 404));
   }
 
   const participants = await chat.getUsers();
@@ -180,9 +182,7 @@ exports.deleteChat = catchAsync(async (req, res, next) => {
         participant.dataValues.id.toString() === user.dataValues.id.toString()
     )
   ) {
-    return next(
-      new AppError("There is no such conversation for selected user", 400)
-    );
+    return next(new AppError("There is no such chat for selected user", 400));
   }
 
   if (chat.dataValues.type === "group") {
@@ -198,7 +198,7 @@ exports.deleteChat = catchAsync(async (req, res, next) => {
       await chat.destroy();
     });
     return res.status(200).json({
-      message: "Conversation was deleted successfully",
+      message: "Chat was deleted successfully",
     });
   }
 
@@ -212,7 +212,7 @@ exports.deleteChat = catchAsync(async (req, res, next) => {
   });
 
   if (isDeleted) {
-    return next(new AppError("This conversation is already deleted", 400));
+    return next(new AppError("This chat is already deleted", 400));
   }
 
   const deletedMessagePromises = chat.dataValues.messages.map(
@@ -237,7 +237,7 @@ exports.deleteChat = catchAsync(async (req, res, next) => {
   });
 
   res.status(200).json({
-    message: "Conversation was deleted successfully",
+    message: "Chat was deleted successfully",
   });
 });
 
@@ -248,20 +248,18 @@ exports.editChat = catchAsync(async (req, res, next) => {
 
   const chat = await findChat(chatId);
   if (!(await chat.hasUser(user.dataValues.id))) {
-    return next(new AppError("This conversation is not your", 403));
+    return next(new AppError("This chat is not your", 403));
   }
 
   if (title && chat.dataValues.type === "private") {
-    return next(
-      new AppError("The name of private conversation can't be changed", 400)
-    );
+    return next(new AppError("The name of private chat can't be changed", 400));
   }
 
   chat.dataValues.title = title;
   await chat.save();
 
   res.status(204).json({
-    message: "Conversation was edited successfully",
+    message: "Chat was edited successfully",
   });
 });
 
@@ -271,7 +269,7 @@ exports.addUserToGroupChat = catchAsync(async (req, res, next) => {
   const chat = await findChat(chatId);
 
   if (!chat) {
-    return next(new AppError("There is no conversation with such id", 404));
+    return next(new AppError("There is no chat with such id", 404));
   }
 
   if (!(await chat.hasUser(user.dataValues.id))) {
@@ -287,9 +285,7 @@ exports.addUserToGroupChat = catchAsync(async (req, res, next) => {
   }
 
   if (chat.dataValues.type === "private") {
-    return next(
-      new AppError("You can't add people to private conversation", 400)
-    );
+    return next(new AppError("You can't add people to private chat", 400));
   }
 
   if (await chat.hasUser(userToInviteId)) {
@@ -308,7 +304,7 @@ exports.addUserToGroupChat = catchAsync(async (req, res, next) => {
   await chat.save();
 
   res.status(200).json({
-    message: "User was added to conversation successfully",
+    message: "User was added to chat successfully",
   });
 });
 
@@ -318,7 +314,7 @@ exports.removeUserFromGroupChat = catchAsync(async (req, res, next) => {
   const chat = await findChat(chatId);
 
   if (!chat) {
-    return next(new AppError("There is no conversation with such id", 404));
+    return next(new AppError("There is no chat with such id", 404));
   }
 
   if (!(await chat.hasUser(user.dataValues.id))) {
@@ -335,10 +331,7 @@ exports.removeUserFromGroupChat = catchAsync(async (req, res, next) => {
 
   if (!checkChatType(chat, "group")) {
     return next(
-      new AppError(
-        "You can't perform such an operation to private conversation",
-        400
-      )
+      new AppError("You can't perform such an operation to private chat", 400)
     );
   }
 
@@ -351,7 +344,7 @@ exports.removeUserFromGroupChat = catchAsync(async (req, res, next) => {
   await chat.save();
 
   res.status(200).json({
-    message: "User was removed from conversation successfully",
+    message: "User was removed from chat successfully",
   });
 });
 
@@ -361,15 +354,12 @@ exports.leaveGroupChat = catchAsync(async (req, res, next) => {
   const chat = await findChat(chatId);
 
   if (!chat) {
-    return next(new AppError("There is no conversation with such id", 404));
+    return next(new AppError("There is no chat with such id", 404));
   }
 
   if (!checkChatType(chat, "group")) {
     return next(
-      new AppError(
-        "You can't perform such an operation to private conversation",
-        400
-      )
+      new AppError("You can't perform such an operation to private chat", 400)
     );
   }
 
@@ -382,7 +372,7 @@ exports.leaveGroupChat = catchAsync(async (req, res, next) => {
   await chat.save();
 
   res.status(200).json({
-    message: "You have exited from conversation successfully",
+    message: "You have exited from chat successfully successfully",
   });
 });
 
@@ -392,15 +382,12 @@ exports.joinGroupChat = catchAsync(async (req, res, next) => {
   const chat = await findChat(chatId);
 
   if (!chat) {
-    return next(new AppError("There is no conversation with such id", 404));
+    return next(new AppError("There is no chat with such id", 404));
   }
 
   if (!checkChatType(chat, "group")) {
     return next(
-      new AppError(
-        "You can't perform such an operation to private conversation",
-        400
-      )
+      new AppError("You can't perform such an operation to private chat", 400)
     );
   }
 
@@ -416,7 +403,7 @@ exports.joinGroupChat = catchAsync(async (req, res, next) => {
   await chat.save();
 
   res.status(200).json({
-    message: "You have joined conversation successfully",
+    message: "You have joined chat successfully",
   });
 });
 
@@ -425,19 +412,17 @@ exports.getListOfChatParticipants = catchAsync(async (req, res, next) => {
   const chat = await findChat(chatId);
 
   if (!chat) {
-    return next(new AppError("There is no conversation with such id", 404));
+    return next(new AppError("There is no chat with such id", 404));
   }
 
   const participants = await chat.getUsers();
 
   if (participants.length < 1) {
-    return next(
-      new AppError("There is no participants in this conversation", 404)
-    );
+    return next(new AppError("There is no participants in this chat", 404));
   }
 
   res.status(200).json({
-    message: "Conversation participants were found successfully",
+    message: "Chat participants were found successfully",
     data: {
       participants,
     },
@@ -451,15 +436,12 @@ exports.changeUserRoleInChat = catchAsync(async (req, res, next) => {
   const chat = await findChat(chatId);
 
   if (!chat) {
-    return next(new AppError("There is no conversation with such id", 404));
+    return next(new AppError("There is no chat with such id", 404));
   }
 
   if (!checkChatType(chat, "group")) {
     return next(
-      new AppError(
-        "You can't perform such an operation to private conversation",
-        403
-      )
+      new AppError("You can't perform such an operation to private chat", 403)
     );
   }
 
@@ -506,9 +488,7 @@ exports.addPicture = catchAsync(async (req, res, next) => {
       participant.dataValues.id.toString() === user.dataValues.id.toString()
   );
   if (!participant) {
-    return next(
-      new AppError("There is no such conversation for selected user", 403)
-    );
+    return next(new AppError("There is no such chat for selected user", 403));
   }
 
   if (!checkRolesAccess(participant.role, ["owner"])) {
@@ -550,9 +530,7 @@ exports.deletePicture = catchAsync(async (req, res, next) => {
       participant.dataValues.id.toString() === user.dataValues.id.toString()
   );
   if (!participant) {
-    return next(
-      new AppError("There is no such conversation for selected user", 403)
-    );
+    return next(new AppError("There is no such chat for selected user", 403));
   }
 
   if (!checkRolesAccess(participant.role, ["owner"])) {
