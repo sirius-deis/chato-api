@@ -83,6 +83,7 @@ exports.getMessages = catchAsync(async (req, res, next) => {
   res.status(200).json({
     message: "Your messages were retrieved successfully",
     data: {
+      chatId,
       messages: messagesWithoutDeleted,
     },
   });
