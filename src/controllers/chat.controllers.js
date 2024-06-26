@@ -159,7 +159,12 @@ exports.createPrivateChat = catchAsync(async (req, res, next) => {
 exports.createGroupChat = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { title } = req.body;
-  await createChat(user.dataValues.id, null, { title, type: "group" });
+  const createdChat = await createChat(user.dataValues.id, null, {
+    title,
+    type: "group",
+  });
+
+  createdChat.addMessage({});
 
   res.status(201).json({
     message: "Group chat was created successfully",
