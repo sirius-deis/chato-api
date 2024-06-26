@@ -30,7 +30,7 @@ const countDeletedMessagesById = (array) => {
 
 exports.getMessages = catchAsync(async (req, res, next) => {
   const { user } = req;
-  const { chatId } = req.params;
+  const { chatId, limit = 15, page = 1 } = req.params;
   const { search, date } = req.query;
 
   const query = [
@@ -55,12 +55,16 @@ exports.getMessages = catchAsync(async (req, res, next) => {
     });
   }
 
+  const skip = limit * (page - 1);
+
   const messages = await Message.findAll({
     where: Sequelize.and(...query),
     include: {
       model: Attachment,
     },
     order: [["createdAt", "DESC"]],
+    skip,
+    limit,
   });
 
   if (messages.length < 1) {
