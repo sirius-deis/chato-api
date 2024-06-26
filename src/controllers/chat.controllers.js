@@ -48,13 +48,14 @@ const checkRolesAccess = (role, roles) => {
 
 exports.getAllChats = catchAsync(async (req, res, next) => {
   const { user } = req;
+  const { messagesLimit = 15 } = req.body;
 
   const chats = await user.getChats({
     include: [
       {
         model: Message,
         order: [["createdAt", "DESC"]],
-        limit: 1,
+        limit: messagesLimit,
       },
     ],
   });
