@@ -25,6 +25,7 @@ exports.createMessage = async ({
         senderId,
         message,
         repliedMessageId,
+        messageType: type,
       });
       if (files) {
         await Promise.all(

@@ -17,6 +17,7 @@ const {
   findChat,
 } = require("../utils/chat");
 const Chat = require("../models/chat.models");
+const { createMessage } = require("../utils/message");
 
 const addAmountOfUnreadMessages = async (chatList, userId) =>
   await Promise.all(
@@ -161,18 +162,18 @@ exports.createGroupChat = catchAsync(async (req, res, next) => {
   const { title } = req.body;
 
   await sequelize.transaction(async () => {
-    const createdChat = await createChat(user.dataValues.id, null, {
+    const {
+      dataValues: { id: chatId },
+    } = await createChat(user.dataValues.id, null, {
       title,
       type: "group",
     });
 
-    createdChat.addMessage({
-      messageType: "system",
+    await createMessage({
+      chatId,
       message: "This chat was created",
-      senderId: user.dataValues.id,
+      type: "system",
     });
-
-    await createdChat.save();
   });
 
   res.status(201).json({
