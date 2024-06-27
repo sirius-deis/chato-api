@@ -141,12 +141,12 @@ exports.getMessage = catchAsync(async (req, res, next) => {
 exports.addMessage = catchAsync(async (req, res, next) => {
   const { user, files } = req;
   const { chatId } = req.params;
-  const { message, repliedMessageId } = req.body;
+  const { message, repliedMessageId, type = "text" } = req.body;
 
   const chat = await findChat(chatId);
 
   if (!chat) {
-    return next(new AppError("There is no conversation with such id", 404));
+    return next(new AppError("There is no a chat with such id", 404));
   }
 
   const participants = await chat.getUsers();
@@ -156,9 +156,10 @@ exports.addMessage = catchAsync(async (req, res, next) => {
     )
   ) {
     return next(
-      new AppError("There is no conversation with such id for this user", 404)
+      new AppError("There is no a chat with such id for this user", 404)
     );
   }
+
   if (chat.dataValues.type === "private") {
     const receiver = participants.find(
       (participant) => participant.dataValues.id !== user.dataValues.id
@@ -194,6 +195,20 @@ exports.addMessage = catchAsync(async (req, res, next) => {
         new AppError("There is no message to reply with such id", 400)
       );
     }
+  }
+
+  const userRole = participants.find(
+    (participant) => participant.dataValues.id === user.dataValues.id
+  ).dataValues.participants.dataValues.role;
+
+  if (
+    type === "system" &&
+    !["group", "chanel"].includes(chat.dataValues.type) &&
+    !["admin"].includes(userRole)
+  ) {
+    return next(
+      new AppError("You don't have rights to create system messages", 401)
+    );
   }
 
   await createMessage({
