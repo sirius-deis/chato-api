@@ -7,7 +7,7 @@ const MessageReaction = require("../models/messageReaction.models");
 const Attachment = require("../models/attachment.models");
 const Chat = require("../models/chat.models");
 const GroupBlockList = require("../models/groupBlockList");
-const { findChat } = require("../utils/chat");
+const { findChat, getUserRole } = require("../utils/chat");
 const {
   createMessage,
   findOneDeletedMessage,
@@ -197,9 +197,7 @@ exports.addMessage = catchAsync(async (req, res, next) => {
     }
   }
 
-  const userRole = participants.find(
-    (participant) => participant.dataValues.id === user.dataValues.id
-  ).dataValues.participants.dataValues.role;
+  const userRole = getUserRole(participant, user.dataValues.id);
 
   if (
     type === "system" &&

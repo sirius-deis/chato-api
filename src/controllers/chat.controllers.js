@@ -15,6 +15,7 @@ const {
   checkIfChatWasDeletedAndRestoreIfYes,
   createChat,
   findChat,
+  getUserRole,
 } = require("../utils/chat");
 const Chat = require("../models/chat.models");
 const { createMessage } = require("../utils/message");
@@ -202,9 +203,7 @@ exports.deleteChat = catchAsync(async (req, res, next) => {
   }
 
   if (chat.dataValues.type === "group") {
-    const userRole = participants.find(
-      (participant) => participant.dataValues.id === user.dataValues.id
-    ).dataValues.participants.dataValues.role;
+    const userRole = getUserRole(participants, user.dataValues.id);
 
     if (userRole !== "owner") {
       return next(new AppError("You are not an owner of this group", 403));

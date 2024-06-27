@@ -95,3 +95,9 @@ exports.findChat = async (chatId, includeModel) =>
     chatId,
     includeModel && { include: { model: includeModel } }
   );
+
+exports.getUserRole = (participants, userId) => {
+  return participants.find(
+    (participant) => participant.dataValues.id === userId
+  ).dataValues.participants.dataValues.role;
+};
