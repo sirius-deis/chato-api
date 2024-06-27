@@ -159,12 +159,21 @@ exports.createPrivateChat = catchAsync(async (req, res, next) => {
 exports.createGroupChat = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { title } = req.body;
-  const createdChat = await createChat(user.dataValues.id, null, {
-    title,
-    type: "group",
-  });
 
-  createdChat.addMessage({});
+  await sequelize.transaction(async () => {
+    const createdChat = await createChat(user.dataValues.id, null, {
+      title,
+      type: "group",
+    });
+
+    createdChat.addMessage({
+      messageType: "system",
+      message: "This chat was created",
+      senderId: user.dataValues.id,
+    });
+
+    await createdChat.save();
+  });
 
   res.status(201).json({
     message: "Group chat was created successfully",
@@ -194,7 +203,8 @@ exports.deleteChat = catchAsync(async (req, res, next) => {
   if (chat.dataValues.type === "group") {
     const userRole = participants.find(
       (participant) => participant.dataValues.id === user.dataValues.id
-    ).dataValues.role;
+    ).dataValues.participants.dataValues.role;
+
     if (userRole !== "owner") {
       return next(new AppError("You are not an owner of this group", 403));
     }
