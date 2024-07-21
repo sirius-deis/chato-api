@@ -16,6 +16,9 @@ const Chat = sequelize.define("chat", {
     defaultValue: "private",
     allowNull: false,
   },
+  description: {
+    type: DataTypes.STRING(256),
+  },
 });
 
 module.exports = Chat;

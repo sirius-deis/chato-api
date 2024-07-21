@@ -48,7 +48,7 @@ exports.createMessage = async ({
   }
 };
 
-exports.findOneDeletedMessage = async (userId, messageId) =>
+exports.findDeletedMessage = async (userId, messageId) =>
   await DeletedMessage.findOne({
     where: Sequelize.and(
       {
@@ -102,7 +102,7 @@ exports.filterDeletedMessages = async (userId, ...messages) => {
   );
 };
 
-exports.findOneMessage = async (id, chatId, ...rest) =>
+exports.findMessage = async (id, chatId, ...rest) =>
   await Message.findOne({
     where: Sequelize.and({ id }, { chatId }, ...rest),
   });

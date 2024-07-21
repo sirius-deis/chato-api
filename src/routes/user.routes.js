@@ -114,8 +114,8 @@ userRouter.post(
   deactivate,
 );
 
-userRouter.patch('/add-photo', uploadFile('photo'), addProfilePhoto);
-userRouter.patch('/delete-photo/:photoId', deleteProfilePhoto);
+userRouter.post('/add-photo', uploadFile('photo'), addProfilePhoto);
+userRouter.post('/delete-photo/:photoId', deleteProfilePhoto);
 
 userRouter.patch('/report/:userId', report);
 

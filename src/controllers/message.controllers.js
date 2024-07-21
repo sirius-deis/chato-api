@@ -10,10 +10,10 @@ const GroupBlockList = require("../models/groupBlockList");
 const { findChat, getUserRole } = require("../utils/chat");
 const {
   createMessage,
-  findOneDeletedMessage,
+  findDeletedMessage,
   addAttachments,
   filterDeletedMessages,
-  findOneMessage,
+  findMessage,
 } = require("../utils/message");
 const { isUserBlockedByAnotherUser } = require("../utils/user");
 
@@ -185,7 +185,7 @@ exports.addMessage = catchAsync(async (req, res, next) => {
       );
     }
 
-    const deletedMessageToReply = await findOneDeletedMessage(
+    const deletedMessageToReply = await findDeletedMessage(
       user.dataValues.id,
       repliedMessageId
     );
@@ -225,7 +225,7 @@ exports.editMessage = catchAsync(async (req, res, next) => {
   const { chatId, messageId } = req.params;
   const { message } = req.body;
 
-  const foundMessage = await findOneMessage(messageId, chatId, {
+  const foundMessage = await findMessage(messageId, chatId, {
     senderId: user.dataValues.id,
   });
 
@@ -350,7 +350,7 @@ exports.unsendMessage = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { chatId, messageId } = req.params;
 
-  const foundMessage = await findOneMessage(messageId, chatId, {
+  const foundMessage = await findMessage(messageId, chatId, {
     senderId: user.dataValues.id,
   });
 
@@ -372,7 +372,7 @@ exports.reactOnMessage = catchAsync(async (req, res, next) => {
   const { chatId, messageId } = req.params;
   const { reaction } = req.body;
 
-  const foundMessage = await findOneMessage(messageId, chatId, {
+  const foundMessage = await findMessage(messageId, chatId, {
     senderId: user.dataValues.id,
   });
 

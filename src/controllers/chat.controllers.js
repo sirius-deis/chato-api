@@ -158,16 +158,23 @@ exports.createPrivateChat = catchAsync(async (req, res, next) => {
   });
 });
 
-exports.createGroupChat = catchAsync(async (req, res, next) => {
+exports.createChat = catchAsync(async (req, res, next) => {
   const { user } = req;
-  const { title } = req.body;
+  const { title, type } = req.body;
+
+  if (!type) {
+    return next(new AppError("Type of chat is required", 400));
+  }
+  if (!title) {
+    return next(new AppError("Title of chat is required", 400));
+  }
 
   await sequelize.transaction(async () => {
     const {
       dataValues: { id: chatId },
     } = await createChat(user.dataValues.id, null, {
       title,
-      type: "group",
+      type,
     });
 
     await createMessage({

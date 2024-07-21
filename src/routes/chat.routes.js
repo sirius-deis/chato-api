@@ -2,7 +2,7 @@ const express = require("express");
 const {
   getAllChats,
   createPrivateChat,
-  createGroupChat,
+  createChat,
   deleteChat,
   editChat,
   addUserToGroupChat,
@@ -40,7 +40,7 @@ chatRouter
     uploadFile("image"),
     isNotEmpty({ field: "title" }),
     validationMiddleware,
-    createGroupChat
+    createChat
   );
 
 chatRouter

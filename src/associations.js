@@ -78,11 +78,11 @@ MessageReaction.belongsTo(Message, { foreignKey: "messageId" });
 User.hasMany(MessageReaction, { onDelete: "cascade", foreignKey: "userId" });
 MessageReaction.belongsTo(User, { foreignKey: "userId" });
 
-User.hasMany(Picture, { onDelete: "cascade", foreignKey: "userId" });
-Picture.belongsTo(User, { foreignKey: "userId" });
-
 Chat.belongsToMany(User, { through: GroupBlockList, foreignKey: "userId" });
 User.belongsToMany(Chat, { through: GroupBlockList, foreignKey: "chatId" });
+
+User.hasMany(Picture, { onDelete: "cascade", foreignKey: "userId" });
+Picture.belongsTo(User, { foreignKey: "userId" });
 
 Picture.hasOne(User, { onDelete: "cascade", foreignKey: "profilePictureId" });
 User.belongsTo(Picture, { foreignKey: "profilePictureId" });
@@ -90,5 +90,5 @@ User.belongsTo(Picture, { foreignKey: "profilePictureId" });
 Chat.hasMany(Picture, { onDelete: "cascade", foreignKey: "chatId" });
 Picture.belongsTo(Chat, { foreignKey: "chatId" });
 
-Picture.hasOne(Chat, { onDelete: "cascade", foreignKey: "profilePictureId" });
-Chat.belongsTo(Picture, { foreignKey: "profilePictureId" });
+Picture.hasOne(Chat, { onDelete: "cascade", foreignKey: "chatPictureId" });
+Chat.belongsTo(Picture, { foreignKey: "chatPictureId" });
